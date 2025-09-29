@@ -95,6 +95,18 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
         /// </summary>
         [ObservableProperty]
         private int _minColumnWidth = 100;
+        
+        /// <summary>
+        /// Visual spacing between panels in pixels
+        /// </summary>
+        [ObservableProperty]
+        private double _panelSpacing = 5;
+        
+        /// <summary>
+        /// Gap between panels in pixels
+        /// </summary>
+        [ObservableProperty]
+        private double _panelGap = 2;
 
         /// <summary>
         /// Constructor
@@ -650,10 +662,10 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                 {
                     // Calculate current canvas width
                     var currentCanvasWidth = TileCanvas!.ActualWidth > 0 ? TileCanvas.ActualWidth : 1000;
-                    if (Panes.Any())
-                    {
+                    //if (Panes.Any())
+                    //{
                         currentCanvasWidth -= System.Windows.SystemParameters.VerticalScrollBarWidth;
-                    }
+                    //}
                     currentCanvasWidth = Math.Max(ColumnCount * MinColumnWidth, currentCanvasWidth);
                     
                     // Calculate current column widths

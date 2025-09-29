@@ -23,9 +23,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Models
         public int ColumnCount { get; set; } = 7;
 
         /// <summary>
-        /// Minimum width per column in flexible mode (in pixels)
+        /// Minimum column width in pixels for flexible grid mode
         /// </summary>
-        public double MinColumnWidth { get; set; } = 80;
+        public int MinColumnWidth { get; set; } = 100;
 
         /// <summary>
         /// Whether to show grid lines

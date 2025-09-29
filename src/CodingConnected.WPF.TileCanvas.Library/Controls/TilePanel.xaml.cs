@@ -62,6 +62,12 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         public static readonly DependencyProperty ResizeThumbVisibilityProperty = ResizeThumbVisibilityPropertyKey.DependencyProperty;
 
+        public static readonly DependencyProperty ContentMarginProperty =
+            DependencyProperty.Register(nameof(ContentMargin), typeof(Thickness), typeof(TilePanel), new PropertyMetadata(new Thickness(0)));
+
+        public static readonly DependencyProperty PanelMarginProperty =
+            DependencyProperty.Register(nameof(PanelMargin), typeof(Thickness), typeof(TilePanel), new PropertyMetadata(new Thickness(0)));
+
         #endregion
 
         #region Properties
@@ -136,6 +142,24 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         {
             get => (Visibility)GetValue(ResizeThumbVisibilityProperty);
             private set => SetValue(ResizeThumbVisibilityPropertyKey, value);
+        }
+
+        /// <summary>
+        /// Margin applied to the content area inside the panel
+        /// </summary>
+        public Thickness ContentMargin
+        {
+            get => (Thickness)GetValue(ContentMarginProperty);
+            set => SetValue(ContentMarginProperty, value);
+        }
+
+        /// <summary>
+        /// Margin applied to the entire panel (spacing between panels)
+        /// </summary>
+        public Thickness PanelMargin
+        {
+            get => (Thickness)GetValue(PanelMarginProperty);
+            set => SetValue(PanelMarginProperty, value);
         }
 
         #endregion

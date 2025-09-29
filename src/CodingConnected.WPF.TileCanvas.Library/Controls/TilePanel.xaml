@@ -7,7 +7,10 @@
             <Border BorderBrush="{TemplateBinding BorderBrush}"
                     BorderThickness="{TemplateBinding BorderThickness}"
                     Background="{TemplateBinding Background}"
-                    CornerRadius="5" Margin="0">
+                    CornerRadius="5">
+                <Border.Margin>
+                    <Binding Path="PanelMargin" RelativeSource="{RelativeSource TemplatedParent}"/>
+                </Border.Margin>
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="10" ShadowDepth="3" Opacity="0.3"/>
                 </Border.Effect>
@@ -50,7 +53,10 @@
                     </Border>
 
                     <!-- Content -->
-                    <Border Grid.Row="1" Padding="2">
+                    <Border Grid.Row="1" Padding="5">
+                        <Border.Margin>
+                            <Binding Path="ContentMargin" RelativeSource="{RelativeSource TemplatedParent}"/>
+                        </Border.Margin>
                         <ContentPresenter Content="{TemplateBinding Content}"/>
                     </Border>
 

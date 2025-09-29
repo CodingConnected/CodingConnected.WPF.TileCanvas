@@ -98,6 +98,14 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             DependencyProperty.Register(nameof(PanelMargin), typeof(double), typeof(TileCanvas),
                 new PropertyMetadata(0.0, OnPanelMarginChanged));
 
+        public static readonly DependencyProperty PanelSpacingProperty =
+            DependencyProperty.Register(nameof(PanelSpacing), typeof(double), typeof(TileCanvas),
+                new PropertyMetadata(0.0, OnPanelSpacingChanged));
+
+        public static readonly DependencyProperty PanelGapProperty =
+            DependencyProperty.Register(nameof(PanelGap), typeof(double), typeof(TileCanvas),
+                new PropertyMetadata(0.0, OnPanelGapChanged));
+
         #endregion
 
         #region Properties
@@ -216,6 +224,24 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         }
 
         /// <summary>
+        /// Visual spacing between panels (applied as ContentMargin to each panel)
+        /// </summary>
+        public double PanelSpacing
+        {
+            get => (double)GetValue(PanelSpacingProperty);
+            set => SetValue(PanelSpacingProperty, value);
+        }
+
+        /// <summary>
+        /// Gap between panels (applied as PanelMargin to each panel)
+        /// </summary>
+        public double PanelGap
+        {
+            get => (double)GetValue(PanelGapProperty);
+            set => SetValue(PanelGapProperty, value);
+        }
+
+        /// <summary>
         /// ItemsSource for MVVM binding - collection of IPaneViewModel objects
         /// </summary>
         public IEnumerable? ItemsSource
@@ -319,6 +345,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
             SetupPanelEvents(panel);
             UpdatePanelEditMode(panel);
+            UpdatePanelSpacing(panel);
+            UpdatePanelGap(panel);
 
             // Update canvas size to accommodate new panel
             UpdateCanvasSize();
@@ -1100,6 +1128,22 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             }
         }
 
+        private static void OnPanelSpacingChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas canvas)
+            {
+                canvas.UpdateAllPanelsSpacing();
+            }
+        }
+
+        private static void OnPanelGapChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas canvas)
+            {
+                canvas.UpdateAllPanelsGap();
+            }
+        }
+
         private void LoadLayout(IEnumerable<PanelLayout> layouts)
         {
             ClearPanels();
@@ -1183,6 +1227,34 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         private void UpdatePanelEditMode(TilePanel panel)
         {
             panel.IsEditMode = IsEditMode;
+        }
+
+        private void UpdateAllPanelsSpacing()
+        {
+            var spacing = new Thickness(PanelSpacing);
+            foreach (var panel in Panels)
+            {
+                panel.ContentMargin = spacing;
+            }
+        }
+
+        private void UpdatePanelSpacing(TilePanel panel)
+        {
+            panel.ContentMargin = new Thickness(PanelSpacing);
+        }
+
+        private void UpdateAllPanelsGap()
+        {
+            var gap = new Thickness(PanelGap);
+            foreach (var panel in Panels)
+            {
+                panel.PanelMargin = gap;
+            }
+        }
+
+        private void UpdatePanelGap(TilePanel panel)
+        {
+            panel.PanelMargin = new Thickness(PanelGap);
         }
 
         private void UpdatePanelPositionsForNewGrid(double[] oldColumnWidths)

@@ -5,7 +5,7 @@
     <!-- Chart Pane DataTemplate -->
     <DataTemplate x:Key="ChartPaneTemplate" DataType="{x:Type viewModels:ChartPaneViewModel}">
             <ScrollViewer>
-        <Grid Margin="10">
+        <Grid Margin="0" Background="AliceBlue">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>

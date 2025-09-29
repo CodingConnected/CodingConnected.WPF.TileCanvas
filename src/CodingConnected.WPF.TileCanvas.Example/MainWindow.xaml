@@ -56,6 +56,12 @@
             <TextBlock Text="Min. column width:" VerticalAlignment="Center" Margin="10,0,5,0"/>
             <TextBox Text="{Binding MinColumnWidth}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0"/>
 
+            <TextBlock Text="Panel spacing:" VerticalAlignment="Center" Margin="10,0,5,0"/>
+            <TextBox Text="{Binding PanelSpacing}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0"/>
+
+            <TextBlock Text="Panel gap:" VerticalAlignment="Center" Margin="10,0,5,0"/>
+            <TextBox Text="{Binding PanelGap}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0"/>
+
             <CheckBox Content="Show Grid" IsChecked="{Binding ShowGrid}"
                      VerticalAlignment="Center" Margin="10,0,10,0"/>
 
@@ -80,6 +86,8 @@
                           ColumnCount="{Binding Path=ColumnCount}"
                           MinColumnWidth="{Binding Path=MinColumnWidth}"
                           SnapToGridOnDrag="{Binding Path=SnapDrag}" PanelMargin="0"
-                          SnapToGridOnResize="{Binding Path=SnapResize}"/>
+                          SnapToGridOnResize="{Binding Path=SnapResize}"
+                          PanelSpacing="{Binding Path=PanelSpacing}"
+                          PanelGap="{Binding Path=PanelGap}"/>
     </Grid>
 </Window>

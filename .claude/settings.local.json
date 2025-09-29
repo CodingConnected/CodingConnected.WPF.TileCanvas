@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Read(//c/dev/CodingConnected.WPF.TileCanvas/**)"
+      "Read(//c/dev/CodingConnected.WPF.TileCanvas/**)",
+      "Bash(dir)"
     ],
     "deny": [],
     "ask": []

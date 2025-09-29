@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackageId>CodingConnected.WPF.TileCanvas</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <Authors>CodingConnected</Authors>
+    <Description>A flexible, responsive tile canvas system for WPF applications with drag-and-drop, resizing, and grid-based layout management.</Description>
+    <PackageTags>WPF;Canvas;Tiles;DragDrop;Grid;Layout;Dashboard</PackageTags>
+    <RepositoryUrl>https://github.com/example/tile-canvas</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+  </PropertyGroup>
+
+</Project>

@@ -1,7 +1,7 @@
-﻿<Application x:Class="CodingConnected.WPF.TileCanvas.App"
+﻿<Application x:Class="CodingConnected.WPF.TileCanvas.Example.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:CodingConnected.WPF.TileCanvas"
+             xmlns:local="clr-namespace:CodingConnected.WPF.TileCanvas.Example"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
          

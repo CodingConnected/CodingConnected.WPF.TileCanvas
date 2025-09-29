@@ -1,0 +1,849 @@
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Shapes;
+using System.Windows.Threading;
+using CodingConnected.WPF.TileCanvas.Library.Enums;
+using CodingConnected.WPF.TileCanvas.Library.Events;
+using CodingConnected.WPF.TileCanvas.Library.Models;
+using CodingConnected.WPF.TileCanvas.Library.Services;
+
+namespace CodingConnected.WPF.TileCanvas.Library.Controls
+{
+    /// <summary>
+    /// Main tile canvas control for creating draggable, resizable panel layouts
+    /// </summary>
+    public partial class TileCanvas : UserControl
+    {
+        #region Private Fields
+
+        private Canvas? _gridLinesCanvas;
+        private Canvas? _panelCanvas;
+        private readonly GridCalculationService _gridService;
+        private ILayoutSerializer _layoutSerializer;
+
+        // Dragging state
+        private Point _dragStartPoint;
+        private Point _dragStartElementPosition;
+        private bool _isDragging;
+        private TilePanel? _draggedElement;
+
+        #endregion
+
+        #region Dependency Properties
+
+        public static readonly DependencyProperty ConfigurationProperty =
+            DependencyProperty.Register(nameof(Configuration), typeof(CanvasConfiguration), typeof(TileCanvas),
+                new PropertyMetadata(new CanvasConfiguration(), OnConfigurationChanged));
+
+        public static readonly DependencyProperty MinWidthProperty =
+            DependencyProperty.Register(nameof(MinWidth), typeof(double), typeof(TileCanvas),
+                new PropertyMetadata(400.0));
+
+        public static readonly DependencyProperty MinHeightProperty =
+            DependencyProperty.Register(nameof(MinHeight), typeof(double), typeof(TileCanvas),
+                new PropertyMetadata(400.0));
+
+        #endregion
+
+        #region Properties
+
+        /// <summary>
+        /// Configuration settings for the canvas
+        /// </summary>
+        public CanvasConfiguration Configuration
+        {
+            get => (CanvasConfiguration)GetValue(ConfigurationProperty);
+            set => SetValue(ConfigurationProperty, value);
+        }
+
+        /// <summary>
+        /// Minimum width of the canvas
+        /// </summary>
+        public new double MinWidth
+        {
+            get => (double)GetValue(MinWidthProperty);
+            set => SetValue(MinWidthProperty, value);
+        }
+
+        /// <summary>
+        /// Minimum height of the canvas
+        /// </summary>
+        public new double MinHeight
+        {
+            get => (double)GetValue(MinHeightProperty);
+            set => SetValue(MinHeightProperty, value);
+        }
+
+        /// <summary>
+        /// Collection of panels on the canvas
+        /// </summary>
+        public ObservableCollection<TilePanel> Panels { get; }
+
+        /// <summary>
+        /// Layout serializer for save/load operations
+        /// </summary>
+        public ILayoutSerializer LayoutSerializer
+        {
+            get => _layoutSerializer;
+            set => _layoutSerializer = value ?? throw new ArgumentNullException(nameof(value));
+        }
+
+        /// <summary>
+        /// Current grid mode
+        /// </summary>
+        public GridMode GridMode
+        {
+            get => Configuration.Grid.Mode;
+            set
+            {
+                Configuration.Grid.Mode = value;
+                RefreshGrid();
+                OnLayoutChanged(LayoutChangeType.GridConfigurationChanged, Array.Empty<PanelLayout>());
+            }
+        }
+
+        /// <summary>
+        /// Current edit mode
+        /// </summary>
+        public EditMode EditMode
+        {
+            get => Configuration.EditMode;
+            set
+            {
+                Configuration.EditMode = value;
+                UpdateAllPanelsEditMode();
+                OnLayoutChanged(LayoutChangeType.EditModeChanged, Array.Empty<PanelLayout>());
+            }
+        }
+
+        /// <summary>
+        /// Whether to show grid lines
+        /// </summary>
+        public bool ShowGrid
+        {
+            get => Configuration.Grid.ShowGrid;
+            set
+            {
+                Configuration.Grid.ShowGrid = value;
+                RefreshGrid();
+            }
+        }
+
+        /// <summary>
+        /// Whether to snap panels to grid when dragging
+        /// </summary>
+        public bool SnapToGridOnDrag
+        {
+            get => Configuration.Grid.SnapToGridOnDrag;
+            set => Configuration.Grid.SnapToGridOnDrag = value;
+        }
+
+        /// <summary>
+        /// Whether to snap panels to grid when resizing
+        /// </summary>
+        public bool SnapToGridOnResize
+        {
+            get => Configuration.Grid.SnapToGridOnResize;
+            set => Configuration.Grid.SnapToGridOnResize = value;
+        }
+
+        #endregion
+
+        #region Events
+
+        /// <summary>
+        /// Raised when a panel is added to the canvas
+        /// </summary>
+        public event EventHandler<PanelEventArgs>? PanelAdded;
+
+        /// <summary>
+        /// Raised when a panel is removed from the canvas
+        /// </summary>
+        public event EventHandler<PanelEventArgs>? PanelRemoved;
+
+        /// <summary>
+        /// Raised when a panel is moved
+        /// </summary>
+        public event EventHandler<PanelEventArgs>? PanelMoved;
+
+        /// <summary>
+        /// Raised when a panel is resized
+        /// </summary>
+        public event EventHandler<PanelEventArgs>? PanelResized;
+
+        /// <summary>
+        /// Raised when the layout changes
+        /// </summary>
+        public event EventHandler<LayoutEventArgs>? LayoutChanged;
+
+        #endregion
+
+        #region Constructor
+
+        public TileCanvas()
+        {
+            InitializeComponent();
+            _gridService = new GridCalculationService();
+            _layoutSerializer = new JsonLayoutSerializer();
+            Panels = new ObservableCollection<TilePanel>();
+
+            Panels.CollectionChanged += Panels_CollectionChanged;
+            Loaded += TileCanvas_Loaded;
+            SizeChanged += TileCanvas_SizeChanged;
+        }
+
+        #endregion
+
+        #region Public Methods
+
+        /// <summary>
+        /// Adds a panel to the canvas at the specified position
+        /// </summary>
+        public void AddPanel(TilePanel panel, double x, double y)
+        {
+            if (panel == null) throw new ArgumentNullException(nameof(panel));
+
+            Point finalPosition = new Point(x, y);
+
+            // Apply grid snapping if enabled (for both modes)
+            if (Configuration.Grid.SnapToGridOnDrag)
+            {
+                finalPosition = _gridService.SnapToGrid(finalPosition, Configuration.Grid, GetAvailableContentWidth());
+            }
+
+            // Apply constraints for flexible mode
+            if (Configuration.Grid.Mode == GridMode.Flexible)
+            {
+                var maxPosition = GetMaxAllowedPosition(panel);
+                finalPosition = new Point(
+                    Math.Max(0, Math.Min(finalPosition.X, maxPosition.X)),
+                    Math.Max(0, finalPosition.Y)
+                );
+            }
+
+            Canvas.SetLeft(panel, finalPosition.X);
+            Canvas.SetTop(panel, finalPosition.Y);
+
+            Panels.Add(panel);
+            _panelCanvas?.Children.Add(panel);
+
+            SetupPanelEvents(panel);
+            UpdatePanelEditMode(panel);
+
+            // Update canvas size to accommodate new panel
+            UpdateCanvasSize();
+
+            var panelLayout = panel.GetLayout();
+            OnPanelAdded(new PanelEventArgs(panelLayout));
+            OnLayoutChanged(LayoutChangeType.PanelAdded, new[] { panelLayout });
+        }
+
+        /// <summary>
+        /// Removes a panel from the canvas
+        /// </summary>
+        public void RemovePanel(TilePanel panel)
+        {
+            if (panel == null) return;
+
+            var panelLayout = panel.GetLayout();
+
+            Panels.Remove(panel);
+            _panelCanvas?.Children.Remove(panel);
+
+            CleanupPanelEvents(panel);
+
+            // Update canvas size after panel removal
+            UpdateCanvasSize();
+
+            OnPanelRemoved(new PanelEventArgs(panelLayout));
+            OnLayoutChanged(LayoutChangeType.PanelRemoved, new[] { panelLayout });
+        }
+
+        /// <summary>
+        /// Clears all panels from the canvas
+        /// </summary>
+        public void ClearPanels()
+        {
+            var allPanels = Panels.Select(p => p.GetLayout()).ToArray();
+
+            foreach (var panel in Panels.ToArray())
+            {
+                CleanupPanelEvents(panel);
+            }
+
+            Panels.Clear();
+            _panelCanvas?.Children.Clear();
+
+            // Reset canvas size after clearing all panels
+            UpdateCanvasSize();
+
+            OnLayoutChanged(LayoutChangeType.LayoutCleared, allPanels);
+        }
+
+        /// <summary>
+        /// Saves the current layout to a file
+        /// </summary>
+        public async Task SaveLayoutAsync(string filePath)
+        {
+            var layouts = Panels.Select(p => p.GetLayout()).ToArray();
+            await LayoutSerializer.SaveToFileAsync(layouts, filePath);
+        }
+
+        /// <summary>
+        /// Loads a layout from a file
+        /// </summary>
+        public async Task LoadLayoutAsync(string filePath)
+        {
+            var layouts = await LayoutSerializer.LoadFromFileAsync(filePath);
+            LoadLayout(layouts);
+        }
+
+        /// <summary>
+        /// Serializes the current layout to a string
+        /// </summary>
+        public string SerializeLayout()
+        {
+            var layouts = Panels.Select(p => p.GetLayout());
+            return LayoutSerializer.Serialize(layouts);
+        }
+
+        /// <summary>
+        /// Deserializes a layout from a string and applies it to the canvas
+        /// </summary>
+        public void DeserializeLayout(string layoutData)
+        {
+            var layouts = LayoutSerializer.Deserialize(layoutData);
+            LoadLayout(layouts);
+        }
+
+        /// <summary>
+        /// Refreshes the grid display
+        /// </summary>
+        public void RefreshGrid()
+        {
+            DrawGridLines();
+        }
+
+        /// <summary>
+        /// Updates the canvas size based on mode and content
+        /// </summary>
+        public void UpdateCanvasSize()
+        {
+            double newMinWidth, newMinHeight;
+
+            if (Configuration.Grid.Mode == GridMode.Flexible)
+            {
+                // In flexible mode, width is determined by column configuration
+                newMinWidth = Configuration.Grid.ColumnCount * Configuration.Grid.MinColumnWidth;
+
+                // Height is based on content (allow unlimited vertical scrolling)
+                newMinHeight = CalculateRequiredHeight();
+            }
+            else
+            {
+                // In fixed mode, size is dynamic based on panel positions
+                newMinWidth = GetDynamicCanvasWidth();
+                newMinHeight = CalculateRequiredHeight();
+            }
+
+            MinWidth = newMinWidth;
+            MinHeight = newMinHeight;
+
+            // Update the panel canvas size to match
+            if (_panelCanvas != null)
+            {
+                _panelCanvas.MinWidth = newMinWidth;
+                _panelCanvas.MinHeight = newMinHeight;
+            }
+
+            // Refresh grid to match new size
+            DrawGridLines();
+        }
+
+        /// <summary>
+        /// Calculates the required height based on panel positions
+        /// </summary>
+        private double CalculateRequiredHeight()
+        {
+            if (Panels.Count == 0)
+            {
+                return 400; // Default minimum
+            }
+
+            double maxBottom = 0;
+            foreach (var panel in Panels)
+            {
+                var top = Canvas.GetTop(panel);
+                if (double.IsNaN(top)) top = 0;
+                var bottom = top + Math.Max(panel.Height, panel.ActualHeight);
+                maxBottom = Math.Max(maxBottom, bottom);
+            }
+
+            return Math.Max(400, maxBottom + 50); // Add small padding
+        }
+
+        /// <summary>
+        /// Gets the required canvas width for flexible mode based on column configuration
+        /// </summary>
+        private double GetRequiredCanvasWidth()
+        {
+            if (Configuration.Grid.Mode != GridMode.Flexible)
+            {
+                // In fixed mode, use dynamic sizing based on panel positions
+                return GetDynamicCanvasWidth();
+            }
+
+            // In flexible mode, canvas width is determined by column requirements
+            var minRequiredWidth = Configuration.Grid.ColumnCount * Configuration.Grid.MinColumnWidth;
+            var availableWidth = ActualWidth;
+
+            // If we have more space than minimum required, distribute it among columns
+            // If we have less space, use minimum width (horizontal scrollbar will appear)
+            return Math.Max(minRequiredWidth, availableWidth);
+        }
+
+        /// <summary>
+        /// Gets the available width for content (accounting for vertical scrollbar in flexible mode)
+        /// </summary>
+        private double GetAvailableContentWidth()
+        {
+            if (Configuration.Grid.Mode != GridMode.Flexible)
+            {
+                return ActualWidth;
+            }
+
+            // In flexible mode, we need to account for vertical scrollbar
+            var availableWidth = ActualWidth;
+            var scrollBarWidth = SystemParameters.VerticalScrollBarWidth;
+
+            // Assume vertical scrollbar is present if content might exceed viewport
+            // This is a conservative approach to ensure consistent layout
+            if (Panels.Any())
+            {
+                availableWidth -= scrollBarWidth;
+            }
+
+            return Math.Max(Configuration.Grid.ColumnCount * Configuration.Grid.MinColumnWidth, availableWidth);
+        }
+
+        /// <summary>
+        /// Gets dynamic canvas width based on panel positions (for fixed mode)
+        /// </summary>
+        private double GetDynamicCanvasWidth()
+        {
+            if (Panels.Count == 0)
+            {
+                return 400; // Default minimum
+            }
+
+            double maxRight = 0;
+            foreach (var panel in Panels)
+            {
+                var left = Canvas.GetLeft(panel);
+                if (double.IsNaN(left)) left = 0;
+                var right = left + Math.Max(panel.Width, panel.ActualWidth);
+                maxRight = Math.Max(maxRight, right);
+            }
+
+            return Math.Max(400, maxRight + 50); // Add small padding
+        }
+
+        /// <summary>
+        /// Finds the ScrollViewer parent in the visual tree
+        /// </summary>
+        private static ScrollViewer? FindParentScrollViewer(DependencyObject child)
+        {
+            var parent = VisualTreeHelper.GetParent(child);
+            if (parent == null) return null;
+
+            if (parent is ScrollViewer scrollViewer)
+                return scrollViewer;
+
+            return FindParentScrollViewer(parent);
+        }
+
+        /// <summary>
+        /// Gets the maximum allowed position for a panel in flexible grid mode
+        /// </summary>
+        private Point GetMaxAllowedPosition(TilePanel panel)
+        {
+            if (Configuration.Grid.Mode != GridMode.Flexible)
+            {
+                // In fixed mode, allow unlimited dragging
+                return new Point(double.MaxValue, double.MaxValue);
+            }
+
+            // In flexible mode, calculate the actual canvas width based on current available space
+            var availableWidth = GetAvailableContentWidth();
+            var columnWidths = _gridService.CalculateColumnWidths(Configuration.Grid, availableWidth);
+            var actualCanvasWidth = columnWidths.Sum();
+
+            // Maximum X position is actual canvas width minus panel width
+            var maxX = Math.Max(0, actualCanvasWidth - panel.ActualWidth);
+
+            // For Y, we don't constrain in flexible mode (only X is column-based)
+            var maxY = double.MaxValue;
+
+            return new Point(maxX, maxY);
+        }
+
+        /// <summary>
+        /// Snaps a position to the nearest grid point
+        /// </summary>
+        public Point SnapToGrid(Point position)
+        {
+            return _gridService.SnapToGrid(position, Configuration.Grid, GetAvailableContentWidth());
+        }
+
+        /// <summary>
+        /// Snaps a size to valid grid dimensions
+        /// </summary>
+        public Size SnapSizeToGrid(Size size)
+        {
+            return _gridService.SnapSizeToGrid(size, Configuration.Grid, GetAvailableContentWidth());
+        }
+
+        #endregion
+
+        #region Template Parts
+
+        public override void OnApplyTemplate()
+        {
+            base.OnApplyTemplate();
+
+            _gridLinesCanvas = GetTemplateChild("PART_GridLinesCanvas") as Canvas;
+            _panelCanvas = GetTemplateChild("PART_PanelCanvas") as Canvas;
+
+            if (_panelCanvas != null)
+            {
+                _panelCanvas.MouseMove += PanelCanvas_MouseMove;
+                _panelCanvas.MouseUp += PanelCanvas_MouseUp;
+            }
+
+            RefreshGrid();
+        }
+
+        #endregion
+
+        #region Event Handlers
+
+        private void TileCanvas_Loaded(object sender, RoutedEventArgs e)
+        {
+            RefreshGrid();
+            UpdateCanvasSize();
+        }
+
+        private void TileCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            if (Configuration.Grid.Mode == GridMode.Flexible)
+            {
+                // Calculate old and new available widths for content
+                var oldAvailableWidth = Math.Max(e.PreviousSize.Width - SystemParameters.VerticalScrollBarWidth,
+                                                Configuration.Grid.ColumnCount * Configuration.Grid.MinColumnWidth);
+                var newAvailableWidth = GetAvailableContentWidth();
+
+                // Only update if there's a meaningful size change
+                if (Math.Abs(oldAvailableWidth - newAvailableWidth) > 1)
+                {
+                    var oldColumnWidths = _gridService.CalculateColumnWidths(Configuration.Grid, oldAvailableWidth);
+                    UpdateCanvasSize();
+                    RefreshGrid();
+                    UpdatePanelPositionsForNewGrid(oldColumnWidths);
+                }
+            }
+            else
+            {
+                // In fixed mode, just refresh the grid
+                RefreshGrid();
+            }
+        }
+
+        private void Panels_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
+        {
+            // Handle collection changes if needed
+        }
+
+        private void PanelCanvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (_isDragging && e.LeftButton == MouseButtonState.Pressed && _draggedElement != null)
+            {
+                var currentPoint = e.GetPosition(_panelCanvas);
+                var totalOffset = currentPoint - _dragStartPoint;
+
+                var newLeft = _dragStartElementPosition.X + totalOffset.X;
+                var newTop = _dragStartElementPosition.Y + totalOffset.Y;
+
+                // Apply constraints based on grid mode
+                if (Configuration.Grid.Mode == GridMode.Flexible)
+                {
+                    // In flexible mode, constrain to column boundaries
+                    var maxPosition = GetMaxAllowedPosition(_draggedElement);
+                    newLeft = Math.Max(0, Math.Min(newLeft, maxPosition.X));
+                    newTop = Math.Max(0, newTop); // Only constrain top boundary, allow unlimited bottom
+                }
+                // In fixed mode, no constraints - allow dragging beyond canvas bounds to expand scrollable area
+
+                // Apply snapping if enabled
+                if (Configuration.Grid.SnapToGridOnDrag)
+                {
+                    var snappedPosition = _gridService.SnapToGrid(new Point(newLeft, newTop), Configuration.Grid, GetAvailableContentWidth());
+                    Canvas.SetLeft(_draggedElement, snappedPosition.X);
+                    Canvas.SetTop(_draggedElement, snappedPosition.Y);
+                }
+                else
+                {
+                    // When snapping is disabled, use exact positioning
+                    Canvas.SetLeft(_draggedElement, newLeft);
+                    Canvas.SetTop(_draggedElement, newTop);
+                }
+            }
+        }
+
+        private void PanelCanvas_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            if (_isDragging && _draggedElement != null)
+            {
+                _isDragging = false;
+                Panel.SetZIndex(_draggedElement, 0);
+
+                // Update canvas size to accommodate new panel position
+                UpdateCanvasSize();
+
+                var panelLayout = _draggedElement.GetLayout();
+                OnPanelMoved(new PanelEventArgs(panelLayout));
+                OnLayoutChanged(LayoutChangeType.PanelMoved, new[] { panelLayout });
+
+                _draggedElement = null;
+            }
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        private static void OnConfigurationChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas canvas)
+            {
+                canvas.RefreshGrid();
+                canvas.UpdateAllPanelsEditMode();
+            }
+        }
+
+        private void LoadLayout(IEnumerable<PanelLayout> layouts)
+        {
+            ClearPanels();
+
+            foreach (var layout in layouts)
+            {
+                var panel = TilePanel.FromLayout(layout);
+                AddPanel(panel, layout.X, layout.Y);
+            }
+
+            // Update canvas size to accommodate loaded layout
+            UpdateCanvasSize();
+
+            OnLayoutChanged(LayoutChangeType.LayoutLoaded, layouts.ToArray());
+        }
+
+        private void SetupPanelEvents(TilePanel panel)
+        {
+            panel.DragStarted += Panel_DragStarted;
+            panel.Resized += Panel_Resized;
+            panel.CloseRequested += Panel_CloseRequested;
+        }
+
+        private void CleanupPanelEvents(TilePanel panel)
+        {
+            panel.DragStarted -= Panel_DragStarted;
+            panel.Resized -= Panel_Resized;
+            panel.CloseRequested -= Panel_CloseRequested;
+        }
+
+        private void Panel_DragStarted(object? sender, MouseButtonEventArgs e)
+        {
+            if (Configuration.EditMode != EditMode.Edit || sender is not TilePanel panel)
+                return;
+
+            _draggedElement = panel;
+            _dragStartPoint = e.GetPosition(_panelCanvas);
+
+            var currentLeft = Canvas.GetLeft(_draggedElement);
+            var currentTop = Canvas.GetTop(_draggedElement);
+            if (double.IsNaN(currentLeft)) currentLeft = 0;
+            if (double.IsNaN(currentTop)) currentTop = 0;
+            _dragStartElementPosition = new Point(currentLeft, currentTop);
+
+            _isDragging = true;
+            Panel.SetZIndex(_draggedElement, 999);
+        }
+
+        private void Panel_Resized(object? sender, EventArgs e)
+        {
+            if (sender is TilePanel panel)
+            {
+                    // Update canvas size to accommodate resized panel
+                UpdateCanvasSize();
+
+                var panelLayout = panel.GetLayout();
+                OnPanelResized(new PanelEventArgs(panelLayout));
+                OnLayoutChanged(LayoutChangeType.PanelResized, new[] { panelLayout });
+            }
+        }
+
+        private void Panel_CloseRequested(object? sender, EventArgs e)
+        {
+            if (sender is TilePanel panel)
+            {
+                RemovePanel(panel);
+            }
+        }
+
+        private void UpdateAllPanelsEditMode()
+        {
+            foreach (var panel in Panels)
+            {
+                UpdatePanelEditMode(panel);
+            }
+        }
+
+        private void UpdatePanelEditMode(TilePanel panel)
+        {
+            panel.IsEditMode = Configuration.EditMode == EditMode.Edit;
+        }
+
+        private void UpdatePanelPositionsForNewGrid(double[] oldColumnWidths)
+        {
+            if (Configuration.Grid.Mode != GridMode.Flexible || oldColumnWidths == null)
+                return;
+
+            var newColumnWidths = _gridService.CalculateColumnWidths(Configuration.Grid, GetAvailableContentWidth());
+
+            foreach (var panel in Panels)
+            {
+                var currentLeft = Canvas.GetLeft(panel);
+                if (double.IsNaN(currentLeft)) currentLeft = 0;
+
+                // Calculate the panel's relative position in the old grid
+                var startColumn = _gridService.CalculateStartColumn(currentLeft, oldColumnWidths);
+                var columnSpan = _gridService.CalculateColumnSpan(panel.ActualWidth, oldColumnWidths);
+
+                // Apply the same relative position to the new grid
+                // Note: This always repositions based on column layout, regardless of snap settings
+                // Snap settings only affect user drag/resize interactions, not automatic layout adjustments
+                var newLeft = _gridService.CalculatePositionForColumn(startColumn, newColumnWidths);
+                var newWidth = _gridService.CalculateWidthForColumnSpan(columnSpan, newColumnWidths);
+
+                Canvas.SetLeft(panel, newLeft);
+                panel.Width = newWidth;
+            }
+        }
+
+        private void DrawGridLines()
+        {
+            if (_gridLinesCanvas == null) return;
+
+            _gridLinesCanvas.Children.Clear();
+
+            if (!Configuration.Grid.ShowGrid) return;
+
+            var width = Math.Max(GetAvailableContentWidth(), MinWidth);
+            var height = Math.Max(ActualHeight, MinHeight);
+
+            if (Configuration.Grid.Mode == GridMode.Fixed)
+            {
+                DrawFixedGridLines(width, height);
+            }
+            else
+            {
+                DrawFlexibleGridLines(width, height);
+            }
+        }
+
+        private void DrawFixedGridLines(double width, double height)
+        {
+            var gridSize = Configuration.Grid.GridSize;
+            var stroke = new SolidColorBrush((Color)ColorConverter.ConvertFromString(Configuration.Grid.GridLineColor));
+
+            // Vertical lines
+            for (double x = 0; x <= width; x += gridSize)
+            {
+                var line = new Line
+                {
+                    X1 = x, Y1 = 0, X2 = x, Y2 = height,
+                    Stroke = stroke,
+                    StrokeThickness = Configuration.Grid.GridLineThickness
+                };
+                _gridLinesCanvas.Children.Add(line);
+            }
+
+            // Horizontal lines
+            for (double y = 0; y <= height; y += gridSize)
+            {
+                var line = new Line
+                {
+                    X1 = 0, Y1 = y, X2 = width, Y2 = y,
+                    Stroke = stroke,
+                    StrokeThickness = Configuration.Grid.GridLineThickness
+                };
+                _gridLinesCanvas.Children.Add(line);
+            }
+        }
+
+        private void DrawFlexibleGridLines(double width, double height)
+        {
+            var columnWidths = _gridService.CalculateColumnWidths(Configuration.Grid, width);
+            var stroke = new SolidColorBrush((Color)ColorConverter.ConvertFromString(Configuration.Grid.GridLineColor));
+            var gridSize = Configuration.Grid.GridSize;
+
+            // Vertical column lines
+            double currentX = 0;
+            for (int i = 0; i <= Configuration.Grid.ColumnCount; i++)
+            {
+                var isEdge = i == 0 || i == Configuration.Grid.ColumnCount;
+                var line = new Line
+                {
+                    X1 = currentX, Y1 = 0, X2 = currentX, Y2 = height,
+                    Stroke = isEdge ? Brushes.Gray : stroke,
+                    StrokeThickness = isEdge ? 2 : Configuration.Grid.GridLineThickness
+                };
+                _gridLinesCanvas.Children.Add(line);
+
+                if (i < Configuration.Grid.ColumnCount)
+                    currentX += columnWidths[i];
+            }
+
+            // Horizontal lines
+            for (double y = 0; y <= height; y += gridSize)
+            {
+                var line = new Line
+                {
+                    X1 = 0, Y1 = y, X2 = currentX, Y2 = y,
+                    Stroke = stroke,
+                    StrokeThickness = Configuration.Grid.GridLineThickness
+                };
+                _gridLinesCanvas.Children.Add(line);
+            }
+        }
+
+        #endregion
+
+        #region Event Raising Methods
+
+        protected virtual void OnPanelAdded(PanelEventArgs e) => PanelAdded?.Invoke(this, e);
+        protected virtual void OnPanelRemoved(PanelEventArgs e) => PanelRemoved?.Invoke(this, e);
+        protected virtual void OnPanelMoved(PanelEventArgs e) => PanelMoved?.Invoke(this, e);
+        protected virtual void OnPanelResized(PanelEventArgs e) => PanelResized?.Invoke(this, e);
+        protected virtual void OnLayoutChanged(LayoutChangeType changeType, PanelLayout[] panels) =>
+            LayoutChanged?.Invoke(this, new LayoutEventArgs(changeType, panels));
+
+        #endregion
+    }
+}

@@ -1,6 +1,6 @@
 ﻿using System.Windows;
 
-namespace CodingConnected.WPF.TileCanvas
+namespace CodingConnected.WPF.TileCanvas.Example
 {
     /// <summary>
     /// Interaction logic for App.xaml

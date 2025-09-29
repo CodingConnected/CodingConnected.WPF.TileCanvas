@@ -1,0 +1,26 @@
+<UserControl x:Class="CodingConnected.WPF.TileCanvas.Library.Controls.TileCanvas"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root">
+    <UserControl.Template>
+        <ControlTemplate TargetType="{x:Type UserControl}">
+            <ScrollViewer x:Name="PART_ScrollViewer"
+                         HorizontalScrollBarVisibility="Auto"
+                         VerticalScrollBarVisibility="Auto"
+                         HorizontalContentAlignment="Left"
+                         VerticalContentAlignment="Top">
+                <Grid>
+                    <!-- Grid lines background -->
+                    <Canvas x:Name="PART_GridLinesCanvas" Background="White" />
+
+                    <!-- Dashboard items -->
+                    <Canvas x:Name="PART_PanelCanvas"
+                            Background="Transparent"
+                            MinWidth="{Binding MinWidth, ElementName=Root}"
+                            MinHeight="{Binding MinHeight, ElementName=Root}"
+                            AllowDrop="True"/>
+                </Grid>
+            </ScrollViewer>
+        </ControlTemplate>
+    </UserControl.Template>
+</UserControl>

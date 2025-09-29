@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>CodingConnected.WPF.TileCanvas.Example</AssemblyName>
+    <RootNamespace>CodingConnected.WPF.TileCanvas.Example</RootNamespace>
+    <StartupObject>CodingConnected.WPF.TileCanvas.Example.App</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CodingConnected.WPF.TileCanvas.Library\CodingConnected.WPF.TileCanvas.Library.csproj" />
+  </ItemGroup>
+
+</Project>

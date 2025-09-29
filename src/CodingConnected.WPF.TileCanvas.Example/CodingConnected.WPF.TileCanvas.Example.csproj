@@ -4,6 +4,7 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
     <AssemblyName>CodingConnected.WPF.TileCanvas.Example</AssemblyName>
     <RootNamespace>CodingConnected.WPF.TileCanvas.Example</RootNamespace>
     <StartupObject>CodingConnected.WPF.TileCanvas.Example.App</StartupObject>
@@ -11,6 +12,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CodingConnected.WPF.TileCanvas.Library\CodingConnected.WPF.TileCanvas.Library.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
   </ItemGroup>
 
 </Project>

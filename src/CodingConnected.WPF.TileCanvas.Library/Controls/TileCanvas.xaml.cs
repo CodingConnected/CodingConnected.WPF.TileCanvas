@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -13,6 +15,7 @@ using CodingConnected.WPF.TileCanvas.Library.Enums;
 using CodingConnected.WPF.TileCanvas.Library.Events;
 using CodingConnected.WPF.TileCanvas.Library.Models;
 using CodingConnected.WPF.TileCanvas.Library.Services;
+using CodingConnected.WPF.TileCanvas.Library.ViewModels;
 
 namespace CodingConnected.WPF.TileCanvas.Library.Controls
 {
@@ -27,6 +30,10 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         private Canvas? _panelCanvas;
         private readonly GridCalculationService _gridService;
         private ILayoutSerializer _layoutSerializer;
+        
+        // MVVM support
+        private readonly Dictionary<IPaneViewModel, TilePanel> _viewModelToPanelMap;
+        private INotifyCollectionChanged? _currentItemsSource;
 
         // Dragging state
         private Point _dragStartPoint;
@@ -49,6 +56,43 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         public static readonly DependencyProperty MinHeightProperty =
             DependencyProperty.Register(nameof(MinHeight), typeof(double), typeof(TileCanvas),
                 new PropertyMetadata(400.0));
+
+        public static readonly DependencyProperty ColumnCountProperty =
+            DependencyProperty.Register(nameof(ColumnCount), typeof(int), typeof(TileCanvas),
+                new PropertyMetadata(7, OnColumnCountChanged));
+
+        public static readonly DependencyProperty MinColumnWidthProperty =
+            DependencyProperty.Register(nameof(MinColumnWidth), typeof(int), typeof(TileCanvas),
+                new PropertyMetadata(100, OnMinColumnWidthChanged));
+
+
+        public static readonly DependencyProperty ItemsSourceProperty =
+            DependencyProperty.Register(nameof(ItemsSource), typeof(IEnumerable), typeof(TileCanvas),
+                new PropertyMetadata(null, OnItemsSourceChanged));
+
+        public static readonly DependencyProperty PaneContentTemplateSelectorProperty =
+            DependencyProperty.Register(nameof(PaneContentTemplateSelector), typeof(DataTemplateSelector), typeof(TileCanvas),
+                new PropertyMetadata(null));
+
+        public static readonly DependencyProperty EditModeProperty =
+            DependencyProperty.Register(nameof(EditMode), typeof(EditMode), typeof(TileCanvas),
+                new PropertyMetadata(EditMode.Edit, OnEditModeChanged));
+
+        public static readonly DependencyProperty ShowGridProperty =
+            DependencyProperty.Register(nameof(ShowGrid), typeof(bool), typeof(TileCanvas),
+                new PropertyMetadata(true, OnShowGridChanged));
+
+        public static readonly DependencyProperty SnapToGridOnDragProperty =
+            DependencyProperty.Register(nameof(SnapToGridOnDrag), typeof(bool), typeof(TileCanvas),
+                new PropertyMetadata(true, OnSnapToGridOnDragChanged));
+
+        public static readonly DependencyProperty SnapToGridOnResizeProperty =
+            DependencyProperty.Register(nameof(SnapToGridOnResize), typeof(bool), typeof(TileCanvas),
+                new PropertyMetadata(true, OnSnapToGridOnResizeChanged));
+
+        public static readonly DependencyProperty GridModeProperty =
+            DependencyProperty.Register(nameof(GridMode), typeof(GridMode), typeof(TileCanvas),
+                new PropertyMetadata(GridMode.Fixed, OnGridModeChanged));
 
         #endregion
 
@@ -100,13 +144,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         public GridMode GridMode
         {
-            get => Configuration.Grid.Mode;
-            set
-            {
-                Configuration.Grid.Mode = value;
-                RefreshGrid();
-                OnLayoutChanged(LayoutChangeType.GridConfigurationChanged, Array.Empty<PanelLayout>());
-            }
+            get => (GridMode)GetValue(GridModeProperty);
+            set => SetValue(GridModeProperty, value);
         }
 
         /// <summary>
@@ -114,13 +153,26 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         public EditMode EditMode
         {
-            get => Configuration.EditMode;
-            set
-            {
-                Configuration.EditMode = value;
-                UpdateAllPanelsEditMode();
-                OnLayoutChanged(LayoutChangeType.EditModeChanged, Array.Empty<PanelLayout>());
-            }
+            get => (EditMode)GetValue(EditModeProperty);
+            set => SetValue(EditModeProperty, value);
+        }
+
+        /// <summary>
+        /// Column count for flexible grid mode
+        /// </summary>
+        public int ColumnCount
+        {
+            get => (int)GetValue(ColumnCountProperty);
+            set => SetValue(ColumnCountProperty, value);
+        }
+
+        /// <summary>
+        /// Minimum column width for flexible grid mode
+        /// </summary>
+        public int MinColumnWidth
+        {
+            get => (int)GetValue(MinColumnWidthProperty);
+            set => SetValue(MinColumnWidthProperty, value);
         }
 
         /// <summary>
@@ -128,12 +180,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         public bool ShowGrid
         {
-            get => Configuration.Grid.ShowGrid;
-            set
-            {
-                Configuration.Grid.ShowGrid = value;
-                RefreshGrid();
-            }
+            get => (bool)GetValue(ShowGridProperty);
+            set => SetValue(ShowGridProperty, value);
         }
 
         /// <summary>
@@ -141,8 +189,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         public bool SnapToGridOnDrag
         {
-            get => Configuration.Grid.SnapToGridOnDrag;
-            set => Configuration.Grid.SnapToGridOnDrag = value;
+            get => (bool)GetValue(SnapToGridOnDragProperty);
+            set => SetValue(SnapToGridOnDragProperty, value);
         }
 
         /// <summary>
@@ -150,8 +198,26 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         public bool SnapToGridOnResize
         {
-            get => Configuration.Grid.SnapToGridOnResize;
-            set => Configuration.Grid.SnapToGridOnResize = value;
+            get => (bool)GetValue(SnapToGridOnResizeProperty);
+            set => SetValue(SnapToGridOnResizeProperty, value);
+        }
+
+        /// <summary>
+        /// ItemsSource for MVVM binding - collection of IPaneViewModel objects
+        /// </summary>
+        public IEnumerable? ItemsSource
+        {
+            get => (IEnumerable?)GetValue(ItemsSourceProperty);
+            set => SetValue(ItemsSourceProperty, value);
+        }
+
+        /// <summary>
+        /// DataTemplateSelector for choosing appropriate content templates based on ViewModel type
+        /// </summary>
+        public DataTemplateSelector? PaneContentTemplateSelector
+        {
+            get => (DataTemplateSelector?)GetValue(PaneContentTemplateSelectorProperty);
+            set => SetValue(PaneContentTemplateSelectorProperty, value);
         }
 
         #endregion
@@ -193,6 +259,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             _gridService = new GridCalculationService();
             _layoutSerializer = new JsonLayoutSerializer();
             Panels = new ObservableCollection<TilePanel>();
+            _viewModelToPanelMap = new Dictionary<IPaneViewModel, TilePanel>();
 
             Panels.CollectionChanged += Panels_CollectionChanged;
             Loaded += TileCanvas_Loaded;
@@ -213,13 +280,13 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             Point finalPosition = new Point(x, y);
 
             // Apply grid snapping if enabled (for both modes)
-            if (Configuration.Grid.SnapToGridOnDrag)
+            if (SnapToGridOnDrag)
             {
                 finalPosition = _gridService.SnapToGrid(finalPosition, Configuration.Grid, GetAvailableContentWidth());
             }
 
             // Apply constraints for flexible mode
-            if (Configuration.Grid.Mode == GridMode.Flexible)
+            if (GridMode == GridMode.Flexible)
             {
                 var maxPosition = GetMaxAllowedPosition(panel);
                 finalPosition = new Point(
@@ -338,7 +405,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         {
             double newMinWidth, newMinHeight;
 
-            if (Configuration.Grid.Mode == GridMode.Flexible)
+            if (GridMode == GridMode.Flexible)
             {
                 // In flexible mode, width is determined by column configuration
                 newMinWidth = Configuration.Grid.ColumnCount * Configuration.Grid.MinColumnWidth;
@@ -394,7 +461,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         private double GetRequiredCanvasWidth()
         {
-            if (Configuration.Grid.Mode != GridMode.Flexible)
+            if (GridMode != GridMode.Flexible)
             {
                 // In fixed mode, use dynamic sizing based on panel positions
                 return GetDynamicCanvasWidth();
@@ -414,7 +481,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         private double GetAvailableContentWidth()
         {
-            if (Configuration.Grid.Mode != GridMode.Flexible)
+            if (GridMode != GridMode.Flexible)
             {
                 return ActualWidth;
             }
@@ -474,7 +541,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         private Point GetMaxAllowedPosition(TilePanel panel)
         {
-            if (Configuration.Grid.Mode != GridMode.Flexible)
+            if (GridMode != GridMode.Flexible)
             {
                 // In fixed mode, allow unlimited dragging
                 return new Point(double.MaxValue, double.MaxValue);
@@ -542,7 +609,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         private void TileCanvas_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            if (Configuration.Grid.Mode == GridMode.Flexible)
+            if (GridMode == GridMode.Flexible)
             {
                 // Calculate old and new available widths for content
                 var oldAvailableWidth = Math.Max(e.PreviousSize.Width - SystemParameters.VerticalScrollBarWidth,
@@ -581,7 +648,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 var newTop = _dragStartElementPosition.Y + totalOffset.Y;
 
                 // Apply constraints based on grid mode
-                if (Configuration.Grid.Mode == GridMode.Flexible)
+                if (GridMode == GridMode.Flexible)
                 {
                     // In flexible mode, constrain to column boundaries
                     var maxPosition = GetMaxAllowedPosition(_draggedElement);
@@ -591,7 +658,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 // In fixed mode, no constraints - allow dragging beyond canvas bounds to expand scrollable area
 
                 // Apply snapping if enabled
-                if (Configuration.Grid.SnapToGridOnDrag)
+                if (SnapToGridOnDrag)
                 {
                     var snappedPosition = _gridService.SnapToGrid(new Point(newLeft, newTop), Configuration.Grid, GetAvailableContentWidth());
                     Canvas.SetLeft(_draggedElement, snappedPosition.X);
@@ -628,12 +695,328 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         #region Private Methods
 
+        /// <summary>
+        /// Handles ItemsSource property changes
+        /// </summary>
+        private static void OnItemsSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas canvas)
+            {
+                canvas.OnItemsSourceChanged(e.OldValue as IEnumerable, e.NewValue as IEnumerable);
+            }
+        }
+
+        /// <summary>
+        /// Handles changes to the ItemsSource collection
+        /// </summary>
+        private void OnItemsSourceChanged(IEnumerable? oldValue, IEnumerable? newValue)
+        {
+            // Unsubscribe from old collection
+            if (_currentItemsSource != null)
+            {
+                _currentItemsSource.CollectionChanged -= ItemsSource_CollectionChanged;
+            }
+
+            // Clear existing panels when ItemsSource changes
+            ClearViewModelPanels();
+
+            _currentItemsSource = newValue as INotifyCollectionChanged;
+
+            // Subscribe to new collection
+            if (_currentItemsSource != null)
+            {
+                _currentItemsSource.CollectionChanged += ItemsSource_CollectionChanged;
+            }
+
+            // Add panels for new items
+            if (newValue != null)
+            {
+                foreach (var item in newValue)
+                {
+                    if (item is IPaneViewModel viewModel)
+                    {
+                        AddPanelForViewModel(viewModel);
+                    }
+                }
+            }
+        }
+
+        private static void OnColumnCountChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas c)
+            {
+                c.Configuration.Grid.ColumnCount = (int)e.NewValue;
+                c.UpdateCanvasSize();
+                c.UpdateLayout();
+            }
+        }
+
+        private static void OnMinColumnWidthChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas c)
+            {
+                c.Configuration.Grid.MinColumnWidth = (int)e.NewValue;
+                c.UpdateCanvasSize();
+                c.UpdateLayout();
+            }
+        }
+
+        /// <summary>
+        /// Handles collection changed events from ItemsSource
+        /// </summary>
+        private void ItemsSource_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
+        {
+            switch (e.Action)
+            {
+                case NotifyCollectionChangedAction.Add:
+                    if (e.NewItems != null)
+                    {
+                        foreach (var item in e.NewItems)
+                        {
+                            if (item is IPaneViewModel viewModel)
+                            {
+                                AddPanelForViewModel(viewModel);
+                            }
+                        }
+                    }
+                    break;
+
+                case NotifyCollectionChangedAction.Remove:
+                    if (e.OldItems != null)
+                    {
+                        foreach (var item in e.OldItems)
+                        {
+                            if (item is IPaneViewModel viewModel)
+                            {
+                                RemovePanelForViewModel(viewModel);
+                            }
+                        }
+                    }
+                    break;
+
+                case NotifyCollectionChangedAction.Reset:
+                    ClearViewModelPanels();
+                    break;
+
+                case NotifyCollectionChangedAction.Replace:
+                    if (e.OldItems != null)
+                    {
+                        foreach (var item in e.OldItems)
+                        {
+                            if (item is IPaneViewModel viewModel)
+                            {
+                                RemovePanelForViewModel(viewModel);
+                            }
+                        }
+                    }
+                    if (e.NewItems != null)
+                    {
+                        foreach (var item in e.NewItems)
+                        {
+                            if (item is IPaneViewModel viewModel)
+                            {
+                                AddPanelForViewModel(viewModel);
+                            }
+                        }
+                    }
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Creates and adds a TilePanel for the given ViewModel
+        /// </summary>
+        private void AddPanelForViewModel(IPaneViewModel viewModel)
+        {
+            if (_viewModelToPanelMap.ContainsKey(viewModel))
+                return;
+
+            var panel = CreateTilePanelFromViewModel(viewModel);
+            _viewModelToPanelMap[viewModel] = panel;
+            
+            // Subscribe to ViewModel property changes to sync with TilePanel
+            viewModel.PropertyChanged += ViewModel_PropertyChanged;
+            
+            AddPanel(panel, viewModel.X, viewModel.Y);
+        }
+
+        /// <summary>
+        /// Removes the TilePanel associated with the given ViewModel
+        /// </summary>
+        private void RemovePanelForViewModel(IPaneViewModel viewModel)
+        {
+            if (_viewModelToPanelMap.TryGetValue(viewModel, out var panel))
+            {
+                viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+                _viewModelToPanelMap.Remove(viewModel);
+                RemovePanel(panel);
+            }
+        }
+
+        /// <summary>
+        /// Clears all ViewModel-generated panels
+        /// </summary>
+        private void ClearViewModelPanels()
+        {
+            var viewModelsToRemove = _viewModelToPanelMap.Keys.ToArray();
+            foreach (var viewModel in viewModelsToRemove)
+            {
+                RemovePanelForViewModel(viewModel);
+            }
+        }
+
+        /// <summary>
+        /// Creates a TilePanel from a ViewModel
+        /// </summary>
+        private TilePanel CreateTilePanelFromViewModel(IPaneViewModel viewModel)
+        {
+            var panel = new TilePanel
+            {
+                PanelId = viewModel.Id,
+                Title = viewModel.Title,
+                Width = viewModel.Width,
+                Height = viewModel.Height,
+                PanelType = viewModel.PaneType
+            };
+
+            // Set header color
+            if (!string.IsNullOrEmpty(viewModel.HeaderColor))
+            {
+                try
+                {
+                    var color = (Color)ColorConverter.ConvertFromString(viewModel.HeaderColor);
+                    panel.HeaderBrush = new SolidColorBrush(color);
+                }
+                catch
+                {
+                    // Use default if color parsing fails
+                }
+            }
+
+            // Set content using DataTemplateSelector if available
+            if (PaneContentTemplateSelector != null)
+            {
+                var template = PaneContentTemplateSelector.SelectTemplate(viewModel, panel);
+                if (template != null)
+                {
+                    var content = template.LoadContent();
+                    if (content is FrameworkElement element)
+                    {
+                        element.DataContext = viewModel;
+                        panel.Content = element;
+                    }
+                }
+            }
+            else
+            {
+                // Fallback content
+                panel.Content = new TextBlock
+                {
+                    Text = $"Content for {viewModel.Title}\n\nViewModel Type: {viewModel.PaneType}",
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(10),
+                    Foreground = Brushes.DarkGray
+                };
+            }
+
+            return panel;
+        }
+
+        /// <summary>
+        /// Handles property changes from ViewModels to sync with TilePanels
+        /// </summary>
+        private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+        {
+            if (sender is IPaneViewModel viewModel && _viewModelToPanelMap.TryGetValue(viewModel, out var panel))
+            {
+                switch (e.PropertyName)
+                {
+                    case nameof(IPaneViewModel.Title):
+                        panel.Title = viewModel.Title;
+                        break;
+                    case nameof(IPaneViewModel.Width):
+                        panel.Width = viewModel.Width;
+                        break;
+                    case nameof(IPaneViewModel.Height):
+                        panel.Height = viewModel.Height;
+                        break;
+                    case nameof(IPaneViewModel.X):
+                        Canvas.SetLeft(panel, viewModel.X);
+                        UpdateCanvasSize();
+                        break;
+                    case nameof(IPaneViewModel.Y):
+                        Canvas.SetTop(panel, viewModel.Y);
+                        UpdateCanvasSize();
+                        break;
+                    case nameof(IPaneViewModel.HeaderColor):
+                        if (!string.IsNullOrEmpty(viewModel.HeaderColor))
+                        {
+                            try
+                            {
+                                var color = (Color)ColorConverter.ConvertFromString(viewModel.HeaderColor);
+                                panel.HeaderBrush = new SolidColorBrush(color);
+                            }
+                            catch
+                            {
+                                // Ignore invalid colors
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
         private static void OnConfigurationChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is TileCanvas canvas)
             {
                 canvas.RefreshGrid();
                 canvas.UpdateAllPanelsEditMode();
+            }
+        }
+
+        private static void OnEditModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas canvas)
+            {
+                canvas.Configuration.EditMode = (EditMode)e.NewValue;
+                canvas.UpdateAllPanelsEditMode();
+                canvas.OnLayoutChanged(LayoutChangeType.EditModeChanged, Array.Empty<PanelLayout>());
+            }
+        }
+
+        private static void OnShowGridChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas canvas)
+            {
+                canvas.Configuration.Grid.ShowGrid = (bool)e.NewValue;
+                canvas.RefreshGrid();
+            }
+        }
+
+        private static void OnSnapToGridOnDragChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas canvas)
+            {
+                canvas.Configuration.Grid.SnapToGridOnDrag = (bool)e.NewValue;
+            }
+        }
+
+        private static void OnSnapToGridOnResizeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas canvas)
+            {
+                canvas.Configuration.Grid.SnapToGridOnResize = (bool)e.NewValue;
+            }
+        }
+
+        private static void OnGridModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas canvas)
+            {
+                canvas.Configuration.Grid.Mode = (GridMode)e.NewValue;
+                canvas.RefreshGrid();
+                canvas.OnLayoutChanged(LayoutChangeType.GridConfigurationChanged, Array.Empty<PanelLayout>());
             }
         }
 
@@ -669,7 +1052,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         private void Panel_DragStarted(object? sender, MouseButtonEventArgs e)
         {
-            if (Configuration.EditMode != EditMode.Edit || sender is not TilePanel panel)
+            if (EditMode != EditMode.Edit || sender is not TilePanel panel)
                 return;
 
             _draggedElement = panel;
@@ -716,12 +1099,12 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         private void UpdatePanelEditMode(TilePanel panel)
         {
-            panel.IsEditMode = Configuration.EditMode == EditMode.Edit;
+            panel.IsEditMode = EditMode == EditMode.Edit;
         }
 
         private void UpdatePanelPositionsForNewGrid(double[] oldColumnWidths)
         {
-            if (Configuration.Grid.Mode != GridMode.Flexible || oldColumnWidths == null)
+            if (GridMode != GridMode.Flexible || oldColumnWidths == null)
                 return;
 
             var newColumnWidths = _gridService.CalculateColumnWidths(Configuration.Grid, GetAvailableContentWidth());
@@ -752,12 +1135,12 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
             _gridLinesCanvas.Children.Clear();
 
-            if (!Configuration.Grid.ShowGrid) return;
+            if (!ShowGrid) return;
 
             var width = Math.Max(GetAvailableContentWidth(), MinWidth);
             var height = Math.Max(ActualHeight, MinHeight);
 
-            if (Configuration.Grid.Mode == GridMode.Fixed)
+            if (GridMode == GridMode.Fixed)
             {
                 DrawFixedGridLines(width, height);
             }

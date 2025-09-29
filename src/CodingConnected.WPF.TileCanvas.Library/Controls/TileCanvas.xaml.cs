@@ -74,9 +74,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             DependencyProperty.Register(nameof(PaneContentTemplateSelector), typeof(DataTemplateSelector), typeof(TileCanvas),
                 new PropertyMetadata(null));
 
-        public static readonly DependencyProperty EditModeProperty =
-            DependencyProperty.Register(nameof(EditMode), typeof(EditMode), typeof(TileCanvas),
-                new PropertyMetadata(EditMode.Edit, OnEditModeChanged));
+        public static readonly DependencyProperty IsEditModeProperty =
+            DependencyProperty.Register(nameof(IsEditMode), typeof(bool), typeof(TileCanvas),
+                new PropertyMetadata(true, OnIsEditModeChanged));
 
         public static readonly DependencyProperty ShowGridProperty =
             DependencyProperty.Register(nameof(ShowGrid), typeof(bool), typeof(TileCanvas),
@@ -93,6 +93,10 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         public static readonly DependencyProperty GridModeProperty =
             DependencyProperty.Register(nameof(GridMode), typeof(GridMode), typeof(TileCanvas),
                 new PropertyMetadata(GridMode.Fixed, OnGridModeChanged));
+
+        public static readonly DependencyProperty PanelMarginProperty =
+            DependencyProperty.Register(nameof(PanelMargin), typeof(double), typeof(TileCanvas),
+                new PropertyMetadata(0.0, OnPanelMarginChanged));
 
         #endregion
 
@@ -151,10 +155,10 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// <summary>
         /// Current edit mode
         /// </summary>
-        public EditMode EditMode
+        public bool IsEditMode
         {
-            get => (EditMode)GetValue(EditModeProperty);
-            set => SetValue(EditModeProperty, value);
+            get => (bool)GetValue(IsEditModeProperty);
+            set => SetValue(IsEditModeProperty, value);
         }
 
         /// <summary>
@@ -200,6 +204,15 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         {
             get => (bool)GetValue(SnapToGridOnResizeProperty);
             set => SetValue(SnapToGridOnResizeProperty, value);
+        }
+
+        /// <summary>
+        /// Margin to account for in grid calculations (for panels that have margins)
+        /// </summary>
+        public double PanelMargin
+        {
+            get => (double)GetValue(PanelMarginProperty);
+            set => SetValue(PanelMarginProperty, value);
         }
 
         /// <summary>
@@ -260,6 +273,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             _layoutSerializer = new JsonLayoutSerializer();
             Panels = new ObservableCollection<TilePanel>();
             _viewModelToPanelMap = new Dictionary<IPaneViewModel, TilePanel>();
+
+            // Sync the default panel margin with the grid service
+            _gridService.DefaultPanelMargin = PanelMargin;
 
             Panels.CollectionChanged += Panels_CollectionChanged;
             Loaded += TileCanvas_Loaded;
@@ -683,6 +699,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 // Update canvas size to accommodate new panel position
                 UpdateCanvasSize();
 
+                // Update corresponding ViewModel position if this is a ViewModel-managed panel
+                UpdateViewModelPosition(_draggedElement);
+
                 var panelLayout = _draggedElement.GetLayout();
                 OnPanelMoved(new PanelEventArgs(panelLayout));
                 OnLayoutChanged(LayoutChangeType.PanelMoved, new[] { panelLayout });
@@ -923,6 +942,57 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         }
 
         /// <summary>
+        /// Updates the ViewModel size when a panel is resized
+        /// </summary>
+        private void UpdateViewModelSize(TilePanel panel)
+        {
+            // Find the ViewModel that corresponds to this panel
+            var viewModelEntry = _viewModelToPanelMap.FirstOrDefault(kvp => kvp.Value == panel);
+            if (viewModelEntry.Key != null)
+            {
+                var viewModel = viewModelEntry.Key;
+                
+                // Temporarily unsubscribe to avoid circular updates
+                viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+                
+                // Update ViewModel size
+                viewModel.Width = panel.Width;
+                viewModel.Height = panel.Height;
+                
+                // Re-subscribe
+                viewModel.PropertyChanged += ViewModel_PropertyChanged;
+            }
+        }
+
+        /// <summary>
+        /// Updates the ViewModel position when a panel is moved
+        /// </summary>
+        private void UpdateViewModelPosition(TilePanel panel)
+        {
+            // Find the ViewModel that corresponds to this panel
+            var viewModelEntry = _viewModelToPanelMap.FirstOrDefault(kvp => kvp.Value == panel);
+            if (viewModelEntry.Key != null)
+            {
+                var viewModel = viewModelEntry.Key;
+                var left = Canvas.GetLeft(panel);
+                var top = Canvas.GetTop(panel);
+                
+                if (!double.IsNaN(left) && !double.IsNaN(top))
+                {
+                    // Temporarily unsubscribe to avoid circular updates
+                    viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+                    
+                    // Update ViewModel position
+                    viewModel.X = left;
+                    viewModel.Y = top;
+                    
+                    // Re-subscribe
+                    viewModel.PropertyChanged += ViewModel_PropertyChanged;
+                }
+            }
+        }
+
+        /// <summary>
         /// Handles property changes from ViewModels to sync with TilePanels
         /// </summary>
         private void ViewModel_PropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -975,11 +1045,11 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             }
         }
 
-        private static void OnEditModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        private static void OnIsEditModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is TileCanvas canvas)
             {
-                canvas.Configuration.EditMode = (EditMode)e.NewValue;
+                canvas.Configuration.IsEditMode = (bool)e.NewValue;
                 canvas.UpdateAllPanelsEditMode();
                 canvas.OnLayoutChanged(LayoutChangeType.EditModeChanged, Array.Empty<PanelLayout>());
             }
@@ -1020,6 +1090,16 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             }
         }
 
+        private static void OnPanelMarginChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas canvas)
+            {
+                canvas._gridService.DefaultPanelMargin = (double)e.NewValue;
+                // Refresh grid to reflect new margin calculations
+                canvas.RefreshGrid();
+            }
+        }
+
         private void LoadLayout(IEnumerable<PanelLayout> layouts)
         {
             ClearPanels();
@@ -1052,7 +1132,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         private void Panel_DragStarted(object? sender, MouseButtonEventArgs e)
         {
-            if (EditMode != EditMode.Edit || sender is not TilePanel panel)
+            if (!IsEditMode || sender is not TilePanel panel)
                 return;
 
             _draggedElement = panel;
@@ -1072,8 +1152,11 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         {
             if (sender is TilePanel panel)
             {
-                    // Update canvas size to accommodate resized panel
+                // Update canvas size to accommodate resized panel
                 UpdateCanvasSize();
+
+                // Update corresponding ViewModel size if this is a ViewModel-managed panel
+                UpdateViewModelSize(panel);
 
                 var panelLayout = panel.GetLayout();
                 OnPanelResized(new PanelEventArgs(panelLayout));
@@ -1099,7 +1182,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         private void UpdatePanelEditMode(TilePanel panel)
         {
-            panel.IsEditMode = EditMode == EditMode.Edit;
+            panel.IsEditMode = IsEditMode;
         }
 
         private void UpdatePanelPositionsForNewGrid(double[] oldColumnWidths)

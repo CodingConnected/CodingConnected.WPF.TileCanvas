@@ -10,7 +10,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Models
         /// <summary>
         /// Current edit mode
         /// </summary>
-        public EditMode EditMode { get; set; } = EditMode.Edit;
+        public bool IsEditMode { get; set; }
 
         /// <summary>
         /// Grid configuration

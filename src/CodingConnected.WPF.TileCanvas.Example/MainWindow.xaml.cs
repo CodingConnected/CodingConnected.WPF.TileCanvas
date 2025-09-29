@@ -13,11 +13,11 @@ namespace CodingConnected.WPF.TileCanvas.Example
             InitializeComponent();
             
             // Set the DataContext to MainViewModel for MVVM binding
-            DataContext = new MainViewModel();
+            var viewModel = new MainViewModel();
+            DataContext = viewModel;
+            
+            // Set the TileCanvas reference for grid calculations
+            Loaded += (s, e) => viewModel.TileCanvas = MainTileCanvas;
         }
-
-        // All panel creation and management is now handled by the MainViewModel
-        // using MVVM data binding - no code-behind needed!
-        // All functionality is now handled by MainViewModel and data binding!
     }
 }

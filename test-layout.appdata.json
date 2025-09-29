@@ -1,0 +1,17 @@
+{
+  "viewModelData": {
+    "test-chart-1": {
+      "viewModelType": "Chart",
+      "properties": "{\"chartType\":\"Bar\",\"dataDescription\":\"Test chart with sample data\",\"seriesInfo\":\"Sample series\",\"showLegend\":true}"
+    },
+    "test-stats-1": {
+      "viewModelType": "Stats", 
+      "properties": "{\"headerText\":\"System Metrics\",\"refreshInterval\":30,\"statistics\":[{\"label\":\"CPU Usage\",\"value\":\"45%\",\"icon\":\"📊\",\"textColor\":\"#FF0066CC\"},{\"label\":\"Memory\",\"value\":\"2.1GB\",\"icon\":\"💾\",\"textColor\":\"#FF228B22\"}]}"
+    }
+  },
+  "canvasSettings": {
+    "panelCounter": 2,
+    "appVersion": "1.0.0",
+    "savedAt": "2024-12-19T10:30:00Z"
+  }
+}

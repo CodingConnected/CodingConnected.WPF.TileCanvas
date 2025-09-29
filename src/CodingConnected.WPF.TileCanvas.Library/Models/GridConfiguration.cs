@@ -20,7 +20,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Models
         /// <summary>
         /// Number of columns in flexible mode
         /// </summary>
-        public int ColumnCount { get; set; } = 12;
+        public int ColumnCount { get; set; } = 7;
 
         /// <summary>
         /// Minimum width per column in flexible mode (in pixels)

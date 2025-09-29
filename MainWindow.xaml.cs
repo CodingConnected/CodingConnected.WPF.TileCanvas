@@ -22,6 +22,12 @@ namespace CodingConnected.WPF.TileCanvas
         private int _panelCounter = 0;
         private const string LayoutFileName = "dashboard-layout.json";
 
+        // Flexible grid properties
+        private bool _isFlexibleGrid = false;
+        private int _columnCount = 12;
+        private double _minColumnWidth = 80;
+        private double[] _columnWidths;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -29,6 +35,8 @@ namespace CodingConnected.WPF.TileCanvas
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            // Initialize flexible grid
+            CalculateColumnWidths();
             DrawGridLines();
 
             // Add global mouse handlers to the canvas for dragging
@@ -40,6 +48,112 @@ namespace CodingConnected.WPF.TileCanvas
             {
                 CreateDefaultPanels();
             }
+        }
+
+        private void Window_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            // Update flexible grid when window size changes
+            if (_isFlexibleGrid)
+            {
+                var oldColumnWidths = _columnWidths?.ToArray(); // Store old widths
+                CalculateColumnWidths();
+
+                // Update existing panel widths if column widths changed
+                if (oldColumnWidths != null && _columnWidths != null)
+                {
+                    UpdatePanelWidthsForNewGrid(oldColumnWidths);
+                }
+
+                DrawGridLines();
+            }
+        }
+
+        private void UpdatePanelWidthsForNewGrid(double[] oldColumnWidths)
+        {
+            if (_columnWidths == null || oldColumnWidths.Length != _columnWidths.Length)
+                return;
+
+            foreach (FrameworkElement child in DashboardCanvas.Children)
+            {
+                if (child is Border panel)
+                {
+                    var currentLeft = Canvas.GetLeft(panel);
+                    if (double.IsNaN(currentLeft)) currentLeft = 0;
+
+                    // Calculate which column this panel starts at and how many columns it spans
+                    var startColumn = CalculateStartColumn(currentLeft, oldColumnWidths);
+                    var columnSpan = CalculateColumnSpan(panel.Width, oldColumnWidths);
+
+                    // Calculate new position and width based on the new grid
+                    var newLeft = CalculatePositionForColumn(startColumn);
+                    var newWidth = CalculateWidthForColumnSpan(columnSpan);
+
+                    Canvas.SetLeft(panel, newLeft);
+                    panel.Width = newWidth;
+                }
+            }
+        }
+
+        private int CalculateColumnSpan(double panelWidth, double[] columnWidths)
+        {
+            double totalWidth = 0;
+            int span = 1;
+
+            for (int i = 0; i < columnWidths.Length; i++)
+            {
+                totalWidth += columnWidths[i];
+                if (Math.Abs(panelWidth - totalWidth) < 5) // Small tolerance for rounding
+                {
+                    span = i + 1;
+                    break;
+                }
+            }
+
+            return span;
+        }
+
+        private double CalculateWidthForColumnSpan(int columnSpan)
+        {
+            if (_columnWidths == null || columnSpan <= 0)
+                return _minColumnWidth;
+
+            double width = 0;
+            for (int i = 0; i < Math.Min(columnSpan, _columnWidths.Length); i++)
+            {
+                width += _columnWidths[i];
+            }
+
+            return width;
+        }
+
+        private int CalculateStartColumn(double xPosition, double[] columnWidths)
+        {
+            double totalWidth = 0;
+
+            for (int i = 0; i < columnWidths.Length; i++)
+            {
+                if (xPosition <= totalWidth + 5) // Small tolerance for rounding
+                {
+                    return i;
+                }
+                totalWidth += columnWidths[i];
+            }
+
+            return Math.Max(0, columnWidths.Length - 1); // Last column
+        }
+
+        private double CalculatePositionForColumn(int columnIndex)
+        {
+            if (_columnWidths == null || columnIndex <= 0)
+                return 0;
+
+            double position = 0;
+            for (int i = 0; i < Math.Min(columnIndex, _columnWidths.Length); i++)
+            {
+                position += _columnWidths[i];
+            }
+
+            return position;
         }
 
         private void CreateDefaultPanels()
@@ -207,13 +321,58 @@ namespace CodingConnected.WPF.TileCanvas
                 newLeft = Math.Max(0, Math.Min(newLeft, DashboardCanvas.ActualWidth - _draggedElement.ActualWidth));
                 newTop = Math.Max(0, Math.Min(newTop, DashboardCanvas.ActualHeight - _draggedElement.ActualHeight));
 
-                // Now snap to grid for final position
-                var snappedLeft = Math.Round(newLeft / _gridSize) * _gridSize;
-                var snappedTop = Math.Round(newTop / _gridSize) * _gridSize;
+                // Apply appropriate snapping based on grid mode
+                if (_isFlexibleGrid)
+                {
+                    var snappedPos = SnapToFlexibleGrid(newLeft, newTop);
+                    Canvas.SetLeft(_draggedElement, snappedPos.X);
+                    Canvas.SetTop(_draggedElement, snappedPos.Y);
+                }
+                else
+                {
+                    // Fixed grid snapping
+                    var snappedLeft = Math.Round(newLeft / _gridSize) * _gridSize;
+                    var snappedTop = Math.Round(newTop / _gridSize) * _gridSize;
 
-                Canvas.SetLeft(_draggedElement, snappedLeft);
-                Canvas.SetTop(_draggedElement, snappedTop);
+                    Canvas.SetLeft(_draggedElement, snappedLeft);
+                    Canvas.SetTop(_draggedElement, snappedTop);
+                }
             }
+        }
+
+        private Point SnapToFlexibleGrid(double x, double y)
+        {
+            if (_columnWidths == null)
+            {
+                CalculateColumnWidths();
+                if (_columnWidths == null) return new Point(x, y);
+            }
+
+            // Snap horizontally to column boundaries
+            double snappedX = 0;
+            double currentX = 0;
+
+            for (int i = 0; i < _columnCount; i++)
+            {
+                double columnEnd = currentX + _columnWidths[i];
+
+                // Check if x is closer to the start or end of this column
+                if (x <= columnEnd)
+                {
+                    double distToStart = Math.Abs(x - currentX);
+                    double distToEnd = Math.Abs(x - columnEnd);
+
+                    snappedX = distToStart <= distToEnd ? currentX : columnEnd;
+                    break;
+                }
+
+                currentX = columnEnd;
+            }
+
+            // Snap vertically to regular grid (same as fixed mode)
+            var snappedY = Math.Round(y / _gridSize) * _gridSize;
+
+            return new Point(snappedX, snappedY);
         }
 
         private void Canvas_MouseUp(object sender, MouseButtonEventArgs e)
@@ -241,12 +400,54 @@ namespace CodingConnected.WPF.TileCanvas
             var grid = thumb.Parent as Grid;
             var border = grid.Parent as Border;
 
-            // Snap resize to grid
-            var newWidth = Math.Round((border.Width + e.HorizontalChange) / _gridSize) * _gridSize;
-            var newHeight = Math.Round((border.Height + e.VerticalChange) / _gridSize) * _gridSize;
+            var newWidth = border.Width + e.HorizontalChange;
+            var newHeight = border.Height + e.VerticalChange;
 
-            border.Width = Math.Max(_gridSize * 2, newWidth);
-            border.Height = Math.Max(_gridSize * 2, newHeight);
+            if (_isFlexibleGrid)
+            {
+                // Snap resize to flexible grid
+                var snappedSize = SnapSizeToFlexibleGrid(newWidth, newHeight);
+                border.Width = snappedSize.Width;
+                border.Height = snappedSize.Height;
+            }
+            else
+            {
+                // Snap resize to fixed grid
+                var snappedWidth = Math.Round(newWidth / _gridSize) * _gridSize;
+                var snappedHeight = Math.Round(newHeight / _gridSize) * _gridSize;
+
+                border.Width = Math.Max(_gridSize * 2, snappedWidth);
+                border.Height = Math.Max(_gridSize * 2, snappedHeight);
+            }
+        }
+
+        private Size SnapSizeToFlexibleGrid(double width, double height)
+        {
+            if (_columnWidths == null)
+            {
+                CalculateColumnWidths();
+                if (_columnWidths == null) return new Size(width, height);
+            }
+
+            // For width, snap to column boundaries (multiple of column widths)
+            double snappedWidth = _columnWidths[0]; // Minimum: 1 column
+            double totalWidth = 0;
+
+            for (int i = 0; i < _columnCount; i++)
+            {
+                totalWidth += _columnWidths[i];
+                if (width <= totalWidth)
+                {
+                    snappedWidth = totalWidth;
+                    break;
+                }
+            }
+
+            // For height, use regular grid snapping
+            var snappedHeight = Math.Round(height / _gridSize) * _gridSize;
+            snappedHeight = Math.Max(_gridSize * 2, snappedHeight);
+
+            return new Size(snappedWidth, snappedHeight);
         }
 
         private void DrawGridLines()
@@ -269,6 +470,18 @@ namespace CodingConnected.WPF.TileCanvas
             DashboardCanvas.MinWidth = width;
             DashboardCanvas.MinHeight = height;
 
+            if (_isFlexibleGrid)
+            {
+                DrawFlexibleGridLines(width, height);
+            }
+            else
+            {
+                DrawFixedGridLines(width, height);
+            }
+        }
+
+        private void DrawFixedGridLines(double width, double height)
+        {
             // Vertical lines
             for (double x = 0; x <= width; x += _gridSize)
             {
@@ -300,6 +513,47 @@ namespace CodingConnected.WPF.TileCanvas
             }
         }
 
+        private void DrawFlexibleGridLines(double width, double height)
+        {
+            CalculateColumnWidths();
+
+            if (_columnWidths == null) return;
+
+            // Vertical column lines
+            double currentX = 0;
+            for (int i = 0; i <= _columnCount; i++)
+            {
+                var line = new Line
+                {
+                    X1 = currentX,
+                    Y1 = 0,
+                    X2 = currentX,
+                    Y2 = height,
+                    Stroke = i == 0 || i == _columnCount ? Brushes.Gray : Brushes.LightGray,
+                    StrokeThickness = i == 0 || i == _columnCount ? 2 : 1
+                };
+                GridLinesCanvas.Children.Add(line);
+
+                if (i < _columnCount)
+                    currentX += _columnWidths[i];
+            }
+
+            // Horizontal lines every grid size
+            for (double y = 0; y <= height; y += _gridSize)
+            {
+                var line = new Line
+                {
+                    X1 = 0,
+                    Y1 = y,
+                    X2 = currentX, // Use actual grid width, not canvas width
+                    Y2 = y,
+                    Stroke = Brushes.LightGray,
+                    StrokeThickness = 1
+                };
+                GridLinesCanvas.Children.Add(line);
+            }
+        }
+
         private void GridSize_Changed(object sender, SelectionChangedEventArgs e)
         {
             var selected = (GridSizeCombo.SelectedItem as ComboBoxItem)?.Content.ToString();
@@ -316,6 +570,111 @@ namespace CodingConnected.WPF.TileCanvas
         private void ShowGrid_Changed(object sender, RoutedEventArgs e)
         {
             DrawGridLines();
+        }
+
+        private void FlexibleGrid_Changed(object sender, RoutedEventArgs e)
+        {
+            var wasFlexible = _isFlexibleGrid;
+            _isFlexibleGrid = FlexibleGridCheck.IsChecked.Value;
+
+            if (_isFlexibleGrid && !wasFlexible)
+            {
+                // Switching to flexible mode - adjust existing panels to fit columns
+                CalculateColumnWidths();
+                AdjustPanelsToFlexibleGrid();
+            }
+
+            CalculateColumnWidths();
+            DrawGridLines();
+        }
+
+        private void AdjustPanelsToFlexibleGrid()
+        {
+            if (_columnWidths == null) return;
+
+            foreach (FrameworkElement child in DashboardCanvas.Children)
+            {
+                if (child is Border panel)
+                {
+                    // Snap existing panel width to nearest column span
+                    var bestColumnSpan = FindBestColumnSpanForWidth(panel.Width);
+                    var newWidth = CalculateWidthForColumnSpan(bestColumnSpan);
+                    panel.Width = newWidth;
+
+                    // Also snap position to column boundaries
+                    var currentLeft = Canvas.GetLeft(panel);
+                    if (double.IsNaN(currentLeft)) currentLeft = 0;
+
+                    var snappedPos = SnapToFlexibleGrid(currentLeft, Canvas.GetTop(panel));
+                    Canvas.SetLeft(panel, snappedPos.X);
+                }
+            }
+        }
+
+        private int FindBestColumnSpanForWidth(double width)
+        {
+            if (_columnWidths == null) return 1;
+
+            double totalWidth = 0;
+            for (int i = 0; i < _columnWidths.Length; i++)
+            {
+                totalWidth += _columnWidths[i];
+                if (width <= totalWidth)
+                {
+                    return i + 1;
+                }
+            }
+
+            return _columnWidths.Length; // Full width
+        }
+
+        private void ColumnCount_Changed(object sender, TextChangedEventArgs e)
+        {
+            if (int.TryParse(ColumnCountBox.Text, out int count) && count > 0)
+            {
+                _columnCount = count;
+                CalculateColumnWidths();
+                DrawGridLines();
+            }
+        }
+
+        private void MinColumnWidth_Changed(object sender, TextChangedEventArgs e)
+        {
+            if (double.TryParse(MinColumnWidthBox.Text, out double width) && width > 0)
+            {
+                _minColumnWidth = width;
+                CalculateColumnWidths();
+                DrawGridLines();
+            }
+        }
+
+        private void CalculateColumnWidths()
+        {
+            if (!_isFlexibleGrid || DashboardCanvas == null)
+                return;
+
+            var canvasWidth = Math.Max(DashboardCanvas.ActualWidth, DashboardCanvas.MinWidth);
+            var totalMinWidth = _columnCount * _minColumnWidth;
+
+            _columnWidths = new double[_columnCount];
+
+            if (totalMinWidth <= canvasWidth)
+            {
+                // We have extra space, distribute it equally
+                var columnWidth = canvasWidth / _columnCount;
+                for (int i = 0; i < _columnCount; i++)
+                {
+                    _columnWidths[i] = columnWidth;
+                }
+            }
+            else
+            {
+                // Not enough space, use minimum width
+                for (int i = 0; i < _columnCount; i++)
+                {
+                    _columnWidths[i] = _minColumnWidth;
+                }
+            }
         }
 
         private void AddPanel_Click(object sender, RoutedEventArgs e)

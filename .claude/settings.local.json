@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/dev/CodingConnected.WPF.TileCanvas/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

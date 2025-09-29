@@ -1212,7 +1212,22 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         {
             if (sender is TilePanel panel)
             {
-                RemovePanel(panel);
+                // Find the corresponding ViewModel and remove it from the ItemsSource collection
+                var viewModelEntry = _viewModelToPanelMap.FirstOrDefault(kvp => kvp.Value == panel);
+                if (viewModelEntry.Key != null)
+                {
+                    // Remove from ViewModel collection - this will trigger ItemsSource_CollectionChanged
+                    // which will call RemovePanelForViewModel, which will call RemovePanel
+                    if (ItemsSource is System.Collections.IList itemsList)
+                    {
+                        itemsList.Remove(viewModelEntry.Key);
+                    }
+                }
+                else
+                {
+                    // Fallback: remove panel directly if no ViewModel mapping exists
+                    RemovePanel(panel);
+                }
             }
         }
 

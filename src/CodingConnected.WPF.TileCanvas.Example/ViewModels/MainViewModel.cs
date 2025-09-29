@@ -664,6 +664,7 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                     var currentCanvasWidth = TileCanvas!.ActualWidth > 0 ? TileCanvas.ActualWidth : 1000;
                     //if (Panes.Any())
                     //{
+                    // we always leave room for the scrollbar
                         currentCanvasWidth -= System.Windows.SystemParameters.VerticalScrollBarWidth;
                     //}
                     currentCanvasWidth = Math.Max(ColumnCount * MinColumnWidth, currentCanvasWidth);

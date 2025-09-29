@@ -50,7 +50,7 @@
                     </Border>
 
                     <!-- Content -->
-                    <Border Grid.Row="1" Padding="15">
+                    <Border Grid.Row="1" Padding="2">
                         <ContentPresenter Content="{TemplateBinding Content}"/>
                     </Border>
 

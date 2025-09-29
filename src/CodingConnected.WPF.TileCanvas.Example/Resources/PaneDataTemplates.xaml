@@ -4,6 +4,7 @@
 
     <!-- Chart Pane DataTemplate -->
     <DataTemplate x:Key="ChartPaneTemplate" DataType="{x:Type viewModels:ChartPaneViewModel}">
+            <ScrollViewer>
         <Grid Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -36,6 +37,7 @@
                 </StackPanel>
             </Border>
         </Grid>
+            </ScrollViewer>
     </DataTemplate>
 
     <!-- Stats Pane DataTemplate -->

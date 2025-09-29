@@ -623,13 +623,56 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                 var viewModel = CreateViewModelFromLayout(layout, viewModelData);
                 if (viewModel != null)
                 {
-                    // Handle flexible grid repositioning if needed
-                    RepositionPaneForCurrentGrid(viewModel, layout, canvasSettings);
+                    // SIMPLE: If we have grid column/span data, use it to calculate correct position/width for current canvas
+                    if (GridMode == GridMode.Flexible && TileCanvas != null && layout.GridColumn.HasValue && layout.GridColumnSpan.HasValue)
+                    {
+                        RestoreGridPosition(viewModel, layout.GridColumn.Value, layout.GridColumnSpan.Value);
+                    }
                     
                     Panes.Add(viewModel);
                     if (_panelCounter == 0) // Fallback counter extraction if not from appData
                         _panelCounter = Math.Max(_panelCounter, ExtractCounterFromTitle(layout.Title));
                 }
+            }
+        }
+        
+        /// <summary>
+        /// Restores a pane to the correct position based on its saved grid column and span
+        /// </summary>
+        private void RestoreGridPosition(IPaneViewModel viewModel, int savedColumn, int savedSpan)
+        {
+            try
+            {
+                SyncConfigurationToTileCanvas();
+                var gridConfig = TileCanvas?.Configuration?.Grid;
+                
+                if (gridConfig != null)
+                {
+                    // Calculate current canvas width
+                    var currentCanvasWidth = TileCanvas!.ActualWidth > 0 ? TileCanvas.ActualWidth : 1000;
+                    if (Panes.Any())
+                    {
+                        currentCanvasWidth -= System.Windows.SystemParameters.VerticalScrollBarWidth;
+                    }
+                    currentCanvasWidth = Math.Max(ColumnCount * MinColumnWidth, currentCanvasWidth);
+                    
+                    // Calculate current column widths
+                    var columnWidths = _gridCalculationService.CalculateColumnWidths(gridConfig, currentCanvasWidth);
+                    
+                    // Calculate correct position and width for current canvas
+                    var correctX = _gridCalculationService.CalculatePositionForColumn(savedColumn, columnWidths);
+                    var correctWidth = _gridCalculationService.CalculateWidthForColumnSpan(savedSpan, columnWidths);
+                    
+                    System.Diagnostics.Debug.WriteLine($"[Restore] {viewModel.Title}: Saved=Col{savedColumn}/Span{savedSpan} -> Current=({correctX:F1}, {correctWidth:F1})");
+                    
+                    // Set the correct position and width
+                    viewModel.X = correctX;
+                    viewModel.Width = correctWidth;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[Restore] Error restoring {viewModel.Title}: {ex.Message}");
             }
         }
 
@@ -779,188 +822,13 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
         }
         
         /// <summary>
-        /// Applies simplified post-load grid adjustments to ensure proper positioning
+        /// Safety net - ensures all panes are grid-aligned after loading
         /// </summary>
         private async Task ApplyPostLoadGridAdjustments()
         {
-            // Only apply adjustments in flexible grid mode
-            if (GridMode != GridMode.Flexible || TileCanvas == null)
-                return;
-                
-            // Give the UI time to update and TileCanvas to be fully loaded
-            await Task.Delay(100);
-            
-            System.Diagnostics.Debug.WriteLine($"[PostLoad] Checking if post-load adjustments are needed...");
-            
-            // Check if canvas size changed significantly from any of the saved layouts
-            var currentCanvasWidth = TileCanvas.ActualWidth > 0 ? TileCanvas.ActualWidth : 1000;
-            bool canvasSizeChanged = false;
-            
-            // Check if canvas size changed significantly from when the layout was saved
-            // We can determine this by checking if any pane has saved canvas width data
-            //bool canvasSizeChanged = false;
-            double? savedCanvasWidth = null;
-            
-            // Find a saved canvas width from any pane to compare with current
-            foreach (var pane in Panes)
-            {
-                // We need to find the original layout data to check saved canvas width
-                // For now, use a simpler heuristic based on current vs expected width
-                break;
-            }
-            
-            // Simple heuristic: if current canvas is significantly larger than minimum required,
-            // it might need adjustments (this catches the case where window was resized to be larger)
-            var minRequiredWidth = ColumnCount * MinColumnWidth;
-            var availableWidth = currentCanvasWidth;
-            
-            // Account for scrollbar like we do in save/load
-            if (GridMode == GridMode.Flexible && Panes.Any())
-            {
-                availableWidth -= System.Windows.SystemParameters.VerticalScrollBarWidth;
-            }
-            availableWidth = Math.Max(minRequiredWidth, availableWidth);
-            
-            // If available width is significantly larger than minimum, adjustments might be needed
-            var tolerance = Math.Max(30, minRequiredWidth * 0.04); // 4% tolerance or 30px
-            
-            if (Math.Abs(availableWidth - minRequiredWidth) > tolerance)
-            {
-                canvasSizeChanged = true;
-                System.Diagnostics.Debug.WriteLine($"[PostLoad] Canvas size may have changed: Available={availableWidth:F0}, MinRequired={minRequiredWidth:F0}, tolerance={tolerance:F0}, proceeding with adjustments");
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[PostLoad] Canvas size stable: Available={availableWidth:F0}, MinRequired={minRequiredWidth:F0}, skipping post-load adjustments");
-                return;
-            }
-            
-            // Continue with adjustments only if canvas size changed
-            try
-            {
-                System.Diagnostics.Debug.WriteLine($"[PostLoad] Applying grid adjustments for canvas size change");
-                
-                // Ensure configuration is synced
-                SyncConfigurationToTileCanvas();
-                
-                var gridConfig = TileCanvas.Configuration?.Grid;
-                
-                if (gridConfig != null)
-                {
-                    var columnWidths = _gridCalculationService.CalculateColumnWidths(gridConfig, availableWidth);
-                    
-                    System.Diagnostics.Debug.WriteLine($"[PostLoad] Adjusted canvas width: {availableWidth:F0}, Column count: {gridConfig.ColumnCount}");
-                    System.Diagnostics.Debug.WriteLine($"[PostLoad] New column widths: [{string.Join(", ", Array.ConvertAll(columnWidths, x => x.ToString("F1")))}]");
-                    
-                    // Recalculate positions for all panels based on their saved grid positions
-                    foreach (var pane in Panes)
-                    {
-                        var originalX = pane.X;
-                        var originalWidth = pane.Width;
-                        
-                        // Calculate what column/span this pane should occupy based on its saved position
-                        var startColumn = _gridCalculationService.CalculateStartColumn(pane.X, columnWidths);
-                        var columnSpan = _gridCalculationService.CalculateColumnSpan(pane.Width, columnWidths);
-                        
-                        // Calculate new grid-aligned position for the new canvas size
-                        var snappedX = _gridCalculationService.CalculatePositionForColumn(startColumn, columnWidths);
-                        var snappedWidth = _gridCalculationService.CalculateWidthForColumnSpan(columnSpan, columnWidths);
-                        
-                        var xDiff = Math.Abs(pane.X - snappedX);
-                        var widthDiff = Math.Abs(pane.Width - snappedWidth);
-                        
-                        // Apply small tolerance to avoid micro-adjustments
-                        if (xDiff > 1.0 || widthDiff > 1.0)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[PostLoad] Adjusting {pane.Title} for new canvas size: ({originalX:F1}, {originalWidth:F1}) -> ({snappedX:F1}, {snappedWidth:F1}) [Col {startColumn}, Span {columnSpan}]");
-                            
-                            pane.X = snappedX;
-                            pane.Width = snappedWidth;
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[PostLoad] {pane.Title}: Position OK for new canvas size");
-                        }
-                    }
-                    
-                    System.Diagnostics.Debug.WriteLine($"[PostLoad] Canvas size change adjustments completed");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[PostLoad] Error during canvas size change adjustments: {ex.Message}");
-            }
-        
-            try
-            {
-                System.Diagnostics.Debug.WriteLine($"[PostLoad] Applying simplified grid adjustments in Flexible mode");
-                
-                // Ensure configuration is synced
-                SyncConfigurationToTileCanvas();
-                
-                var canvasWidth = TileCanvas.ActualWidth > 0 ? TileCanvas.ActualWidth : 1000;
-                var gridConfig = TileCanvas.Configuration?.Grid;
-                
-                if (gridConfig != null)
-                {
-                    var columnWidths = _gridCalculationService.CalculateColumnWidths(gridConfig, canvasWidth);
-                    
-                    System.Diagnostics.Debug.WriteLine($"[PostLoad] Canvas width: {canvasWidth:F0}, Column count: {gridConfig.ColumnCount}");
-                    
-                    // Snap all panels to current grid using tolerance
-                    foreach (var pane in Panes)
-                    {
-                        var originalX = pane.X;
-                        var originalWidth = pane.Width;
-                        
-                        // Calculate ideal grid position
-                        var startColumn = _gridCalculationService.CalculateStartColumn(pane.X, columnWidths);
-                        var columnSpan = _gridCalculationService.CalculateColumnSpan(pane.Width, columnWidths);
-                        
-                        var snappedX = _gridCalculationService.CalculatePositionForColumn(startColumn, columnWidths);
-                        var snappedWidth = _gridCalculationService.CalculateWidthForColumnSpan(columnSpan, columnWidths);
-                        
-                        // Apply different approach for X and Width after loading
-                        var xDiff = Math.Abs(pane.X - snappedX);
-                        var widthDiff = Math.Abs(pane.Width - snappedWidth);
-                        
-                        // For post-load adjustments, we want to ensure perfect grid alignment
-                        // X positions: Only adjust if significantly off (X seems to be OK)
-                        var xTolerance = 5.0; // 5 pixels - only adjust if really off
-                        bool adjustX = xDiff > xTolerance;
-                        
-                        // Width: ALWAYS adjust to exact grid alignment after loading (ignore tolerance)
-                        bool adjustWidth = widthDiff > 0.01; // Adjust ANY width difference > 0.01px (essentially always)
-                        
-                        if (adjustX || adjustWidth)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[PostLoad] Adjusting {pane.Title}: X({originalX:F1}->{(adjustX ? snappedX.ToString("F1") : "unchanged")}), Width({originalWidth:F1}->{snappedWidth:F1}) [diff: {widthDiff:F2}px]");
-                            
-                            // Only adjust X if it's significantly off
-                            if (adjustX)
-                            {
-                                pane.X = snappedX;
-                            }
-                            
-                            // ALWAYS adjust width to exact grid alignment after loading
-                            if (adjustWidth)
-                            {
-                                pane.Width = snappedWidth;
-                            }
-                        }
-                        else
-                        {
-                            System.Diagnostics.Debug.WriteLine($"[PostLoad] {pane.Title}: Perfect alignment - X diff: {xDiff:F2}px, Width diff: {widthDiff:F2}px");
-                        }
-                    }
-                    
-                    System.Diagnostics.Debug.WriteLine($"[PostLoad] Grid adjustments completed");
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"[PostLoad] Error during grid adjustments: {ex.Message}");
-            }
+            System.Diagnostics.Debug.WriteLine($"[PostLoad] Grid restoration should have been done during load - this is just a safety check");
+            // The real work is now done in RestoreGridPosition() during load
+            // This method can be simplified or removed
         }
         
         /// <summary>

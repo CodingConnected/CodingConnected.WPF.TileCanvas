@@ -28,6 +28,9 @@ namespace CodingConnected.WPF.TileCanvas
         private double _minColumnWidth = 80;
         private double[] _columnWidths;
 
+        // Edit mode properties
+        private bool _isEditMode = true;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -192,7 +195,7 @@ namespace CodingConnected.WPF.TileCanvas
                 Background = new SolidColorBrush(headerColor),
                 BorderBrush = Brushes.Gray,
                 BorderThickness = new Thickness(0, 0, 0, 1),
-                Cursor = Cursors.SizeAll,
+                Cursor = _isEditMode ? Cursors.SizeAll : Cursors.Arrow,
                 Focusable = true
             };
 
@@ -232,6 +235,7 @@ namespace CodingConnected.WPF.TileCanvas
             closeButtonContainer.Children.Add(closeButton);
             closeButton.HorizontalAlignment = HorizontalAlignment.Right;
             closeButton.Margin = new Thickness(0, 5, 5, 0);
+            closeButtonContainer.Visibility = _isEditMode ? Visibility.Visible : Visibility.Hidden;
 
             Grid.SetRow(header, 0);
 
@@ -258,7 +262,8 @@ namespace CodingConnected.WPF.TileCanvas
                 Cursor = Cursors.SizeNWSE,
                 Background = Brushes.DarkGray,
                 Margin = new Thickness(0, 0, 3, 3),
-                Opacity = 0.5
+                Opacity = 0.5,
+                Visibility = _isEditMode ? Visibility.Visible : Visibility.Hidden
             };
             resizeThumb.DragDelta += Thumb_DragDelta;
             Grid.SetRowSpan(resizeThumb, 2); // Span across both rows to ensure bottom-right positioning
@@ -270,9 +275,12 @@ namespace CodingConnected.WPF.TileCanvas
 
             border.Child = grid;
 
-            // Event handlers for dragging - attach to header only
-            header.MouseDown += Item_MouseDown;
-            header.MouseUp += Item_MouseUp;
+            // Event handlers for dragging - attach to header only if in edit mode
+            if (_isEditMode)
+            {
+                header.MouseDown += Item_MouseDown;
+                header.MouseUp += Item_MouseUp;
+            }
 
             Canvas.SetLeft(border, x);
             Canvas.SetTop(border, y);
@@ -282,6 +290,8 @@ namespace CodingConnected.WPF.TileCanvas
 
         private void Item_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            if (!_isEditMode) return; // Don't allow dragging if not in edit mode
+
             System.Diagnostics.Debug.WriteLine("Header clicked!"); // Debug output
 
             if (e.OriginalSource is Button) return; // Don't drag when clicking close
@@ -645,6 +655,79 @@ namespace CodingConnected.WPF.TileCanvas
                 _minColumnWidth = width;
                 CalculateColumnWidths();
                 DrawGridLines();
+            }
+        }
+
+        private void EditMode_Changed(object sender, RoutedEventArgs e)
+        {
+            _isEditMode = EditModeCheck.IsChecked.Value;
+            UpdateAllPanelsEditMode();
+        }
+
+        private void UpdateAllPanelsEditMode()
+        {
+            if (DashboardCanvas == null) return;
+
+            foreach (FrameworkElement child in DashboardCanvas.Children)
+            {
+                if (child is Border panel)
+                {
+                    UpdatePanelEditMode(panel);
+                }
+            }
+        }
+
+        private void UpdatePanelEditMode(Border panel)
+        {
+            var grid = panel.Child as Grid;
+            if (grid == null) return;
+
+            // Find the header, resize thumb, and close button
+            Border header = null;
+            Thumb resizeThumb = null;
+            Grid closeButtonContainer = null;
+
+            foreach (var gridChild in grid.Children)
+            {
+                if (gridChild is Border border && Grid.GetRow(border) == 0)
+                    header = border;
+                else if (gridChild is Thumb thumb)
+                    resizeThumb = thumb;
+                else if (gridChild is Grid buttonGrid && buttonGrid.Children.Count > 0 && buttonGrid.Children[0] is Button)
+                    closeButtonContainer = buttonGrid;
+            }
+
+            // Update header cursor and mouse events
+            if (header != null)
+            {
+                header.Cursor = _isEditMode ? Cursors.SizeAll : Cursors.Arrow;
+
+                if (_isEditMode)
+                {
+                    // Ensure events are attached (they might already be, but this is safe)
+                    header.MouseDown -= Item_MouseDown; // Remove first to avoid duplicates
+                    header.MouseUp -= Item_MouseUp;
+                    header.MouseDown += Item_MouseDown;
+                    header.MouseUp += Item_MouseUp;
+                }
+                else
+                {
+                    // Remove drag events
+                    header.MouseDown -= Item_MouseDown;
+                    header.MouseUp -= Item_MouseUp;
+                }
+            }
+
+            // Update resize thumb visibility
+            if (resizeThumb != null)
+            {
+                resizeThumb.Visibility = _isEditMode ? Visibility.Visible : Visibility.Hidden;
+            }
+
+            // Update close button visibility
+            if (closeButtonContainer != null)
+            {
+                closeButtonContainer.Visibility = _isEditMode ? Visibility.Visible : Visibility.Hidden;
             }
         }
 

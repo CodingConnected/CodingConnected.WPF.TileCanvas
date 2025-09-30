@@ -621,6 +621,48 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             return _gridService.SnapSizeToGrid(size, Configuration.Grid, GetAvailableContentWidth());
         }
 
+        /// <summary>
+        /// Snaps all panels to the nearest grid lines
+        /// </summary>
+        public void SnapAllPanelsToGrid()
+        {
+            foreach (var panel in Panels)
+            {
+                var currentPosition = new Point(
+                    Canvas.GetLeft(panel), 
+                    Canvas.GetTop(panel)
+                );
+                
+                // Handle NaN values
+                if (double.IsNaN(currentPosition.X)) currentPosition.X = 0;
+                if (double.IsNaN(currentPosition.Y)) currentPosition.Y = 0;
+                
+                // Snap position to grid
+                var snappedPosition = SnapToGrid(currentPosition);
+                Canvas.SetLeft(panel, snappedPosition.X);
+                Canvas.SetTop(panel, snappedPosition.Y);
+                
+                // Also snap size if resize snapping is enabled
+                if (SnapToGridOnResize)
+                {
+                    var currentSize = new Size(panel.Width, panel.Height);
+                    var snappedSize = SnapSizeToGrid(currentSize);
+                    panel.Width = snappedSize.Width;
+                    panel.Height = snappedSize.Height;
+                }
+                
+                // Update corresponding ViewModel if this is a ViewModel-managed panel
+                UpdateViewModelPosition(panel);
+                if (SnapToGridOnResize)
+                {
+                    UpdateViewModelSize(panel);
+                }
+            }
+            
+            // Update canvas size after snapping all panels
+            UpdateCanvasSize();
+        }
+
         #endregion
 
         #region Template Parts
@@ -1165,6 +1207,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             panel.DragStarted += Panel_DragStarted;
             panel.Resized += Panel_Resized;
             panel.CloseRequested += Panel_CloseRequested;
+            panel.ColorChanged += Panel_ColorChanged;
         }
 
         private void CleanupPanelEvents(TilePanel panel)
@@ -1172,6 +1215,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             panel.DragStarted -= Panel_DragStarted;
             panel.Resized -= Panel_Resized;
             panel.CloseRequested -= Panel_CloseRequested;
+            panel.ColorChanged -= Panel_ColorChanged;
         }
 
         private void Panel_DragStarted(object? sender, MouseButtonEventArgs e)
@@ -1227,6 +1271,28 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 {
                     // Fallback: remove panel directly if no ViewModel mapping exists
                     RemovePanel(panel);
+                }
+            }
+        }
+
+        private void Panel_ColorChanged(object? sender, ColorChangedEventArgs e)
+        {
+            if (sender is TilePanel panel)
+            {
+                // Find the corresponding ViewModel and update its HeaderColor
+                var viewModelEntry = _viewModelToPanelMap.FirstOrDefault(kvp => kvp.Value == panel);
+                if (viewModelEntry.Key != null)
+                {
+                    var viewModel = viewModelEntry.Key;
+                    
+                    // Temporarily unsubscribe to avoid circular updates
+                    viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+                    
+                    // Update ViewModel HeaderColor
+                    viewModel.HeaderColor = e.SelectedColor.ToString();
+                    
+                    // Re-subscribe
+                    viewModel.PropertyChanged += ViewModel_PropertyChanged;
                 }
             }
         }

@@ -1,10 +1,28 @@
 using System;
+using System.Linq;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using CodingConnected.WPF.TileCanvas.Library.Models;
+
+namespace CodingConnected.WPF.TileCanvas.Library.Controls
+{
+    /// <summary>
+    /// Event args for color changed events
+    /// </summary>
+    public class ColorChangedEventArgs : EventArgs
+    {
+        public Color SelectedColor { get; }
+        
+        public ColorChangedEventArgs(Color selectedColor)
+        {
+            SelectedColor = selectedColor;
+        }
+    }
+}
 
 namespace CodingConnected.WPF.TileCanvas.Library.Controls
 {
@@ -17,6 +35,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         private Border? _header;
         private Button? _closeButton;
+        private Button? _colorButton;
+        private Popup? _colorPopup;
+        private UniformGrid? _colorGrid;
         private Thumb? _resizeThumb;
 
         #endregion
@@ -181,6 +202,11 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         public event EventHandler? CloseRequested;
 
+        /// <summary>
+        /// Raised when a color is selected from the color picker
+        /// </summary>
+        public event EventHandler<ColorChangedEventArgs>? ColorChanged;
+
         #endregion
 
         #region Constructor
@@ -306,6 +332,11 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 _closeButton.Click -= CloseButton_Click;
             }
 
+            if (_colorButton != null)
+            {
+                _colorButton.Click -= ColorButton_Click;
+            }
+
             if (_resizeThumb != null)
             {
                 _resizeThumb.DragDelta -= ResizeThumb_DragDelta;
@@ -316,6 +347,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             // Get template parts
             _header = GetTemplateChild("PART_Header") as Border;
             _closeButton = GetTemplateChild("PART_CloseButton") as Button;
+            _colorButton = GetTemplateChild("PART_ColorButton") as Button;
+            _colorPopup = GetTemplateChild("PART_ColorPopup") as Popup;
+            _colorGrid = GetTemplateChild("PART_ColorGrid") as UniformGrid;
             _resizeThumb = GetTemplateChild("PART_ResizeThumb") as Thumb;
 
             // Set up new event handlers
@@ -329,6 +363,14 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             {
                 _closeButton.Click += CloseButton_Click;
             }
+
+            if (_colorButton != null)
+            {
+                _colorButton.Click += ColorButton_Click;
+            }
+
+            // Initialize the color palette
+            InitializeColorPalette();
 
             if (_resizeThumb != null)
             {
@@ -357,6 +399,68 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             CloseRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void ColorButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_colorPopup != null)
+            {
+                _colorPopup.IsOpen = true;
+            }
+        }
+
+        private void ColorSwatch_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button colorButton && colorButton.Background is SolidColorBrush brush)
+            {
+                var selectedColor = brush.Color;
+                HeaderBrush = new SolidColorBrush(selectedColor);
+                
+                // Close popup
+                if (_colorPopup != null)
+                {
+                    _colorPopup.IsOpen = false;
+                }
+                
+                // Raise color changed event
+                ColorChanged?.Invoke(this, new ColorChangedEventArgs(selectedColor));
+            }
+        }
+
+        private void InitializeColorPalette()
+        {
+            if (_colorGrid == null) return;
+            
+            _colorGrid.Children.Clear();
+            
+            // Define a set of common colors for the palette
+            var colors = typeof(Colors).GetProperties(BindingFlags.Static | BindingFlags.Public)
+                .Where(p => p.PropertyType == typeof(Color))
+                .Select(p => (Color)p.GetValue(null))
+                .OrderBy(c => {
+                    var (r, g, b) = (c.R / 255f, c.G / 255f, c.B / 255f);
+                    var (max, min) = (Math.Max(r, Math.Max(g, b)), Math.Min(r, Math.Min(g, b)));
+                    var delta = max - min;
+                    return delta == 0 ? 0 : (max == r ? 60 * (((g - b) / delta) % 6) : max == g ? 60 * ((b - r) / delta + 2) : 60 * ((r - g) / delta + 4)) + (max == r && g < b ? 360 : 0);
+                }) // Sort by hue for better visual grouping
+                .ToArray();
+
+            foreach (var color in colors)
+            {
+                var colorButton = new Button
+                {
+                    Width = 20,
+                    Height = 20,
+                    Margin = new Thickness(2),
+                    Background = new SolidColorBrush(color),
+                    BorderBrush = Brushes.Gray,
+                    BorderThickness = new Thickness(1),
+                    ToolTip = color.ToString()
+                };
+                
+                colorButton.Click += ColorSwatch_Click;
+                _colorGrid.Children.Add(colorButton);
+            }
         }
 
         private void ResizeThumb_DragDelta(object sender, DragDeltaEventArgs e)

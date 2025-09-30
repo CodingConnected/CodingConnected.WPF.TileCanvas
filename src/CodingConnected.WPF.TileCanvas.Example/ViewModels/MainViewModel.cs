@@ -221,6 +221,15 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
         }
 
         /// <summary>
+        /// Command to snap all panels to the nearest grid lines
+        /// </summary>
+        [RelayCommand]
+        private void SnapPanels()
+        {
+            TileCanvas?.SnapAllPanelsToGrid();
+        }
+
+        /// <summary>
         /// Command to remove a specific pane
         /// </summary>
         /// <param name="pane">The pane to remove</param>

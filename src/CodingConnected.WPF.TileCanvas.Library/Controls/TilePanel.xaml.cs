@@ -39,6 +39,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         private Popup? _colorPopup;
         private UniformGrid? _colorGrid;
         private Thumb? _resizeThumb;
+        private TextBlock? _titleDisplay;
+        private TextBox? _titleEditor;
 
         #endregion
 
@@ -88,6 +90,10 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         public static readonly DependencyProperty PanelMarginProperty =
             DependencyProperty.Register(nameof(PanelMargin), typeof(Thickness), typeof(TilePanel), new PropertyMetadata(new Thickness(0)));
+
+        public static readonly DependencyProperty IsEditingTitleProperty =
+            DependencyProperty.Register(nameof(IsEditingTitle), typeof(bool), typeof(TilePanel),
+                new PropertyMetadata(false, OnIsEditingTitleChanged));
 
         #endregion
 
@@ -183,6 +189,15 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             set => SetValue(PanelMarginProperty, value);
         }
 
+        /// <summary>
+        /// Whether the title is currently being edited
+        /// </summary>
+        public bool IsEditingTitle
+        {
+            get => (bool)GetValue(IsEditingTitleProperty);
+            set => SetValue(IsEditingTitleProperty, value);
+        }
+
         #endregion
 
         #region Events
@@ -206,6 +221,11 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// Raised when a color is selected from the color picker
         /// </summary>
         public event EventHandler<ColorChangedEventArgs>? ColorChanged;
+
+        /// <summary>
+        /// Raised when the title is changed through inline editing
+        /// </summary>
+        public event EventHandler<string>? TitleChanged;
 
         #endregion
 
@@ -342,6 +362,17 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 _resizeThumb.DragDelta -= ResizeThumb_DragDelta;
             }
 
+            if (_titleDisplay != null)
+            {
+                _titleDisplay.MouseDown -= TitleDisplay_MouseDown;
+            }
+
+            if (_titleEditor != null)
+            {
+                _titleEditor.LostFocus -= TitleEditor_LostFocus;
+                _titleEditor.KeyDown -= TitleEditor_KeyDown;
+            }
+
             base.OnApplyTemplate();
 
             // Get template parts
@@ -351,6 +382,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             _colorPopup = GetTemplateChild("PART_ColorPopup") as Popup;
             _colorGrid = GetTemplateChild("PART_ColorGrid") as UniformGrid;
             _resizeThumb = GetTemplateChild("PART_ResizeThumb") as Thumb;
+            _titleDisplay = GetTemplateChild("PART_TitleDisplay") as TextBlock;
+            _titleEditor = GetTemplateChild("PART_TitleEditor") as TextBox;
 
             // Set up new event handlers
             if (_header != null)
@@ -375,6 +408,18 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             if (_resizeThumb != null)
             {
                 _resizeThumb.DragDelta += ResizeThumb_DragDelta;
+            }
+
+            // Set up title editing event handlers
+            if (_titleDisplay != null)
+            {
+                _titleDisplay.MouseDown += TitleDisplay_MouseDown;
+            }
+
+            if (_titleEditor != null)
+            {
+                _titleEditor.LostFocus += TitleEditor_LostFocus;
+                _titleEditor.KeyDown += TitleEditor_KeyDown;
             }
 
             UpdateEditModeVisuals();
@@ -487,6 +532,30 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             Resized?.Invoke(this, EventArgs.Empty);
         }
 
+        private void TitleDisplay_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // Only allow title editing in edit mode and with left mouse button
+            if (IsEditMode && e.ChangedButton == MouseButton.Left)
+            {
+                e.Handled = true; // Prevent drag from starting
+                StartTitleEdit();
+            }
+        }
+
+        private void TitleEditor_LostFocus(object sender, RoutedEventArgs e)
+        {
+            EndTitleEdit();
+        }
+
+        private void TitleEditor_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter || e.Key == Key.Escape)
+            {
+                EndTitleEdit();
+                e.Handled = true;
+            }
+        }
+
         #endregion
 
         #region Private Methods
@@ -496,6 +565,19 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             if (d is TilePanel panel)
             {
                 panel.UpdateEditModeVisuals();
+            }
+        }
+
+        private static void OnIsEditingTitleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TilePanel panel && (bool)e.NewValue)
+            {
+                // Focus the title editor when entering edit mode
+                panel.Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    panel._titleEditor?.Focus();
+                    panel._titleEditor?.SelectAll();
+                }));
             }
         }
 
@@ -514,6 +596,30 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             }
 
             return Content;
+        }
+
+        private void StartTitleEdit()
+        {
+            IsEditingTitle = true;
+        }
+
+        private void EndTitleEdit()
+        {
+            if (IsEditingTitle)
+            {
+                IsEditingTitle = false;
+                
+                // Get the updated title from the TextBox and raise the event
+                if (_titleEditor != null && !string.IsNullOrEmpty(_titleEditor.Text))
+                {
+                    var newTitle = _titleEditor.Text.Trim();
+                    if (newTitle != Title)
+                    {
+                        Title = newTitle;
+                        TitleChanged?.Invoke(this, newTitle);
+                    }
+                }
+            }
         }
 
         private TileCanvas? FindParentTileCanvas()

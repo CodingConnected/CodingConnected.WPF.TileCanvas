@@ -30,14 +30,50 @@
                             BorderThickness="0,0,0,1"
                             Cursor="{Binding HeaderCursor, ElementName=Root}">
                         <Grid>
-                            <StackPanel Orientation="Horizontal" Margin="10,5,10,5"
-                                       Background="Transparent">
-                                <TextBlock Text="{Binding Title, ElementName=Root}"
-                                          FontWeight="Bold"
-                                          FontSize="14"
-                                          VerticalAlignment="Center"
-                                          IsHitTestVisible="False"/>
-                            </StackPanel>
+                            <!-- Title Container - Grid to overlay TextBox on TextBlock -->
+                            <Grid Background="Transparent" Margin="5">
+                                <!-- Title Display Mode -->
+                                <TextBlock x:Name="PART_TitleDisplay"
+                                        Text="{Binding Title, ElementName=Root}"
+                                        FontWeight="Bold"
+                                        FontSize="14"
+                                        VerticalAlignment="Center"
+                                        Cursor="IBeam">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditingTitle, ElementName=Root}" Value="True">
+                                                    <Setter Property="Visibility" Value="Hidden"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+
+                                <!-- Title Edit Mode - Overlaid on same Grid cell -->
+                                <TextBox x:Name="PART_TitleEditor"
+                                    Text="{Binding Title, ElementName=Root, UpdateSourceTrigger=PropertyChanged}"
+                                    FontWeight="Bold"
+                                    FontSize="14"
+                                    VerticalAlignment="Center" HorizontalAlignment="Left"
+                                    BorderThickness="1"
+                                    BorderBrush="#FF0078D4"
+                                    Background="White"
+                                    Padding="2"
+                                    MinWidth="80">
+                                    <TextBox.Style>
+                                        <Style TargetType="TextBox">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsEditingTitle, ElementName=Root}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBox.Style>
+                                </TextBox>
+                            </Grid>
 
                             <!-- Color Picker Button -->
                             <Button x:Name="PART_ColorButton"

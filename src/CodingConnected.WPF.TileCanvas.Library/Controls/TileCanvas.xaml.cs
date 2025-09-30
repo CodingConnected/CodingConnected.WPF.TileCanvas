@@ -1182,6 +1182,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             panel.Resized += Panel_Resized;
             panel.CloseRequested += Panel_CloseRequested;
             panel.ColorChanged += Panel_ColorChanged;
+            panel.TitleChanged += Panel_TitleChanged;
         }
 
         private void CleanupPanelEvents(TilePanel panel)
@@ -1190,6 +1191,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             panel.Resized -= Panel_Resized;
             panel.CloseRequested -= Panel_CloseRequested;
             panel.ColorChanged -= Panel_ColorChanged;
+            panel.TitleChanged -= Panel_TitleChanged;
         }
 
         private void Panel_DragStarted(object? sender, MouseButtonEventArgs e)
@@ -1264,6 +1266,28 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                     
                     // Update ViewModel HeaderColor
                     viewModel.HeaderColor = e.SelectedColor.ToString();
+                    
+                    // Re-subscribe
+                    viewModel.PropertyChanged += ViewModel_PropertyChanged;
+                }
+            }
+        }
+
+        private void Panel_TitleChanged(object? sender, string newTitle)
+        {
+            if (sender is TilePanel panel)
+            {
+                // Find the corresponding ViewModel and update its Title
+                var viewModelEntry = _viewModelToPanelMap.FirstOrDefault(kvp => kvp.Value == panel);
+                if (viewModelEntry.Key != null)
+                {
+                    var viewModel = viewModelEntry.Key;
+                    
+                    // Temporarily unsubscribe to avoid circular updates
+                    viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+                    
+                    // Update ViewModel Title
+                    viewModel.Title = newTitle;
                     
                     // Re-subscribe
                     viewModel.PropertyChanged += ViewModel_PropertyChanged;

@@ -34,17 +34,17 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
         public IEnumerable<PanelLayout> Deserialize(string data)
         {
             if (string.IsNullOrWhiteSpace(data))
-                return Enumerable.Empty<PanelLayout>();
+                return [];
 
             try
             {
                 var panels = JsonSerializer.Deserialize<List<PanelLayout>>(data, _options);
-                return panels ?? Enumerable.Empty<PanelLayout>();
+                return panels ?? [];
             }
             catch (JsonException)
             {
                 // Return empty collection if deserialization fails
-                return Enumerable.Empty<PanelLayout>();
+                return [];
             }
         }
 
@@ -57,7 +57,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
         public async Task<IEnumerable<PanelLayout>> LoadFromFileAsync(string filePath)
         {
             if (!File.Exists(filePath))
-                return Enumerable.Empty<PanelLayout>();
+                return [];
 
             try
             {
@@ -67,7 +67,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
             catch (IOException)
             {
                 // Return empty collection if file read fails
-                return Enumerable.Empty<PanelLayout>();
+                return [];
             }
         }
     }

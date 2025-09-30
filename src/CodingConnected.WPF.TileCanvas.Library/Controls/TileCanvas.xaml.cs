@@ -49,12 +49,12 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             DependencyProperty.Register(nameof(Configuration), typeof(CanvasConfiguration), typeof(TileCanvas),
                 new PropertyMetadata(new CanvasConfiguration(), OnConfigurationChanged));
 
-        public static readonly DependencyProperty MinWidthProperty =
-            DependencyProperty.Register(nameof(MinWidth), typeof(double), typeof(TileCanvas),
+        public static readonly DependencyProperty MinCanvasWidthProperty =
+            DependencyProperty.Register(nameof(MinCanvasWidth), typeof(double), typeof(TileCanvas),
                 new PropertyMetadata(400.0));
 
-        public static readonly DependencyProperty MinHeightProperty =
-            DependencyProperty.Register(nameof(MinHeight), typeof(double), typeof(TileCanvas),
+        public static readonly DependencyProperty MinCanvasHeightProperty =
+            DependencyProperty.Register(nameof(MinCanvasHeight), typeof(double), typeof(TileCanvas),
                 new PropertyMetadata(400.0));
 
         public static readonly DependencyProperty ColumnCountProperty =
@@ -111,6 +111,11 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         #region Properties
 
         /// <summary>
+        /// Collection of panels on the canvas
+        /// </summary>
+        public ObservableCollection<TilePanel> Panels { get; }
+
+        /// <summary>
         /// Configuration settings for the canvas
         /// </summary>
         public CanvasConfiguration Configuration
@@ -122,25 +127,20 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// <summary>
         /// Minimum width of the canvas
         /// </summary>
-        public new double MinWidth
+        public double MinCanvasWidth
         {
-            get => (double)GetValue(MinWidthProperty);
-            set => SetValue(MinWidthProperty, value);
+            get => (double)GetValue(MinCanvasWidthProperty);
+            set => SetValue(MinCanvasWidthProperty, value);
         }
 
         /// <summary>
         /// Minimum height of the canvas
         /// </summary>
-        public new double MinHeight
+        public double MinCanvasHeight
         {
-            get => (double)GetValue(MinHeightProperty);
-            set => SetValue(MinHeightProperty, value);
+            get => (double)GetValue(MinCanvasHeightProperty);
+            set => SetValue(MinCanvasHeightProperty, value);
         }
-
-        /// <summary>
-        /// Collection of panels on the canvas
-        /// </summary>
-        public ObservableCollection<TilePanel> Panels { get; }
 
         /// <summary>
         /// Layout serializer for save/load operations
@@ -297,13 +297,12 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             InitializeComponent();
             _gridService = new GridCalculationService();
             _layoutSerializer = new JsonLayoutSerializer();
-            Panels = new ObservableCollection<TilePanel>();
-            _viewModelToPanelMap = new Dictionary<IPaneViewModel, TilePanel>();
+            Panels = [];
+            _viewModelToPanelMap = [];
 
             // Sync the default panel margin with the grid service
             _gridService.DefaultPanelMargin = PanelMargin;
 
-            Panels.CollectionChanged += Panels_CollectionChanged;
             Loaded += TileCanvas_Loaded;
             SizeChanged += TileCanvas_SizeChanged;
         }
@@ -317,9 +316,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         public void AddPanel(TilePanel panel, double x, double y)
         {
-            if (panel == null) throw new ArgumentNullException(nameof(panel));
+            ArgumentNullException.ThrowIfNull(panel);
 
-            Point finalPosition = new Point(x, y);
+            Point finalPosition = new(x, y);
 
             // Apply grid snapping if enabled (for both modes)
             if (SnapToGridOnDrag)
@@ -345,15 +344,15 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
             SetupPanelEvents(panel);
             UpdatePanelEditMode(panel);
-            UpdatePanelSpacing(panel);
-            UpdatePanelGap(panel);
+            panel.ContentMargin = new Thickness(PanelSpacing); 
+            panel.PanelMargin = new Thickness(PanelGap);
 
             // Update canvas size to accommodate new panel
             UpdateCanvasSize();
 
             var panelLayout = panel.GetLayout();
             OnPanelAdded(new PanelEventArgs(panelLayout));
-            OnLayoutChanged(LayoutChangeType.PanelAdded, new[] { panelLayout });
+            OnLayoutChanged(LayoutChangeType.PanelAdded, [panelLayout]);
         }
 
         /// <summary>
@@ -374,7 +373,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             UpdateCanvasSize();
 
             OnPanelRemoved(new PanelEventArgs(panelLayout));
-            OnLayoutChanged(LayoutChangeType.PanelRemoved, new[] { panelLayout });
+            OnLayoutChanged(LayoutChangeType.PanelRemoved, [panelLayout]);
         }
 
         /// <summary>
@@ -464,8 +463,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 newMinHeight = CalculateRequiredHeight();
             }
 
-            MinWidth = newMinWidth;
-            MinHeight = newMinHeight;
+            MinCanvasWidth = newMinWidth;
+            MinCanvasHeight = newMinHeight;
 
             // Update the panel canvas size to match
             if (_panelCanvas != null)
@@ -498,26 +497,6 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             }
 
             return Math.Max(400, maxBottom + 50); // Add small padding
-        }
-
-        /// <summary>
-        /// Gets the required canvas width for flexible mode based on column configuration
-        /// </summary>
-        private double GetRequiredCanvasWidth()
-        {
-            if (GridMode != GridMode.Flexible)
-            {
-                // In fixed mode, use dynamic sizing based on panel positions
-                return GetDynamicCanvasWidth();
-            }
-
-            // In flexible mode, canvas width is determined by column requirements
-            var minRequiredWidth = Configuration.Grid.ColumnCount * Configuration.Grid.MinColumnWidth;
-            var availableWidth = ActualWidth;
-
-            // If we have more space than minimum required, distribute it among columns
-            // If we have less space, use minimum width (horizontal scrollbar will appear)
-            return Math.Max(minRequiredWidth, availableWidth);
         }
 
         /// <summary>
@@ -716,11 +695,6 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 // In fixed mode, just refresh the grid
                 RefreshGrid();
             }
-        }
-
-        private void Panels_CollectionChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
-        {
-            // Handle collection changes if needed
         }
 
         private void PanelCanvas_MouseMove(object sender, MouseEventArgs e)
@@ -1319,11 +1293,6 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             }
         }
 
-        private void UpdatePanelSpacing(TilePanel panel)
-        {
-            panel.ContentMargin = new Thickness(PanelSpacing);
-        }
-
         private void UpdateAllPanelsGap()
         {
             var gap = new Thickness(PanelGap);
@@ -1331,11 +1300,6 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             {
                 panel.PanelMargin = gap;
             }
-        }
-
-        private void UpdatePanelGap(TilePanel panel)
-        {
-            panel.PanelMargin = new Thickness(PanelGap);
         }
 
         private void UpdatePanelPositionsForNewGrid(double[] oldColumnWidths)
@@ -1373,8 +1337,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
             if (!ShowGrid) return;
 
-            var width = Math.Max(GetAvailableContentWidth(), MinWidth);
-            var height = Math.Max(ActualHeight, MinHeight);
+            var width = Math.Max(GetAvailableContentWidth(), MinCanvasWidth);
+            var height = Math.Max(ActualHeight, MinCanvasHeight);
 
             if (GridMode == GridMode.Fixed)
             {
@@ -1388,6 +1352,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         private void DrawFixedGridLines(double width, double height)
         {
+            if (_gridLinesCanvas == null) return;
+            
             var gridSize = Configuration.Grid.GridSize;
             var stroke = new SolidColorBrush((Color)ColorConverter.ConvertFromString(Configuration.Grid.GridLineColor));
 
@@ -1418,6 +1384,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         private void DrawFlexibleGridLines(double width, double height)
         {
+            if (_gridLinesCanvas == null) return;
+
             var columnWidths = _gridService.CalculateColumnWidths(Configuration.Grid, width);
             var stroke = new SolidColorBrush((Color)ColorConverter.ConvertFromString(Configuration.Grid.GridLineColor));
             var gridSize = Configuration.Grid.GridSize;

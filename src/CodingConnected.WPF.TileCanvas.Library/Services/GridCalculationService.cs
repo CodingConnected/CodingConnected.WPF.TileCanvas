@@ -11,8 +11,6 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
     /// </summary>
     public class GridCalculationService
     {
-        private double[]? _columnWidths;
-        
         /// <summary>
         /// Default margin to account for in grid calculations (can be overridden per panel)
         /// </summary>
@@ -47,7 +45,6 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
                 }
             }
 
-            _columnWidths = columnWidths;
             return columnWidths;
         }
 

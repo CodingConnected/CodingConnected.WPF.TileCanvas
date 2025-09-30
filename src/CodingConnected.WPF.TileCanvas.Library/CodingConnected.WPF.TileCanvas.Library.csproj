@@ -4,18 +4,55 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
+    
+    <!-- NuGet Package Configuration -->
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>CodingConnected.WPF.TileCanvas</PackageId>
     <PackageVersion>1.0.0</PackageVersion>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    
+    <!-- Package Metadata -->
+    <Title>CodingConnected WPF TileCanvas</Title>
     <Authors>CodingConnected</Authors>
-    <Description>A flexible, responsive tile canvas system for WPF applications with drag-and-drop, resizing, and grid-based layout management.</Description>
-    <PackageTags>WPF;Canvas;Tiles;DragDrop;Grid;Layout;Dashboard</PackageTags>
-    <RepositoryUrl>https://github.com/example/tile-canvas</RepositoryUrl>
+    <Company>CodingConnected</Company>
+    <Product>CodingConnected.WPF.TileCanvas</Product>
+    <Copyright>Copyright © 2024 CodingConnected</Copyright>
+    <Description>A flexible, responsive tile canvas system for WPF applications with drag-and-drop, resizing, and grid-based layout management. Supports MVVM binding, layout persistence, and customizable grid layouts.</Description>
+    <PackageProjectUrl>https://github.com/CodingConnected/CodingConnected.WPF.TileCanvas</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/CodingConnected/CodingConnected.WPF.TileCanvas</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>WPF;Canvas;Tiles;DragDrop;Grid;Layout;Dashboard;MVVM;Panels;Resizable;Interactive</PackageTags>
+    <PackageReleaseNotes>Initial release of CodingConnected.WPF.TileCanvas
+    
+Features:
+- Interactive drag and drop panels
+- Resizable panels with grid snapping
+- Two grid modes: Fixed and Flexible
+- Full MVVM support with data binding
+- Layout persistence (save/load to JSON)
+- Customizable styling and templates
+- Edit mode toggle
+- Event system for layout changes</PackageReleaseNotes>
+    
+    <!-- Documentation -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
+    
+    <!-- Repository and Issue Tracking -->
+    <PackageProjectUrl>https://github.com/CodingConnected/CodingConnected.WPF.TileCanvas</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/CodingConnected/CodingConnected.WPF.TileCanvas</RepositoryUrl>
+    <RepositoryBranch>main</RepositoryBranch>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

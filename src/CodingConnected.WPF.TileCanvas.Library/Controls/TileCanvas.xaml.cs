@@ -45,6 +45,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         #region Dependency Properties
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         public static readonly DependencyProperty ConfigurationProperty =
             DependencyProperty.Register(nameof(Configuration), typeof(CanvasConfiguration), typeof(TileCanvas),
                 new PropertyMetadata(new CanvasConfiguration(), OnConfigurationChanged));
@@ -105,6 +106,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         public static readonly DependencyProperty PanelGapProperty =
             DependencyProperty.Register(nameof(PanelGap), typeof(double), typeof(TileCanvas),
                 new PropertyMetadata(0.0, OnPanelGapChanged));
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
         #endregion
 
@@ -292,6 +294,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         #region Constructor
 
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public TileCanvas()
         {
             InitializeComponent();
@@ -572,7 +577,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
             // In flexible mode, calculate the actual canvas width based on current available space
             var availableWidth = GetAvailableContentWidth();
-            var columnWidths = _gridService.CalculateColumnWidths(Configuration.Grid, availableWidth);
+            var columnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, availableWidth);
             var actualCanvasWidth = columnWidths.Sum();
 
             // Maximum X position is actual canvas width minus panel width
@@ -646,6 +651,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         #region Template Parts
 
+        /// <summary>
+        /// Action to take when the control template is applied
+        /// </summary>
         public override void OnApplyTemplate()
         {
             base.OnApplyTemplate();
@@ -684,7 +692,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 // Only update if there's a meaningful size change
                 if (Math.Abs(oldAvailableWidth - newAvailableWidth) > 1)
                 {
-                    var oldColumnWidths = _gridService.CalculateColumnWidths(Configuration.Grid, oldAvailableWidth);
+                    var oldColumnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, oldAvailableWidth);
                     UpdateCanvasSize();
                     RefreshGrid();
                     UpdatePanelPositionsForNewGrid(oldColumnWidths);
@@ -748,7 +756,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
                 var panelLayout = _draggedElement.GetLayout();
                 OnPanelMoved(new PanelEventArgs(panelLayout));
-                OnLayoutChanged(LayoutChangeType.PanelMoved, new[] { panelLayout });
+                OnLayoutChanged(LayoutChangeType.PanelMoved, [panelLayout]);
 
                 _draggedElement = null;
             }
@@ -772,7 +780,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// <summary>
         /// Handles changes to the ItemsSource collection
         /// </summary>
-        private void OnItemsSourceChanged(IEnumerable? oldValue, IEnumerable? newValue)
+        private void OnItemsSourceChanged(IEnumerable? _, IEnumerable? newValue)
         {
             // Unsubscribe from old collection
             if (_currentItemsSource != null)
@@ -1095,7 +1103,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             {
                 canvas.Configuration.IsEditMode = (bool)e.NewValue;
                 canvas.UpdateAllPanelsEditMode();
-                canvas.OnLayoutChanged(LayoutChangeType.EditModeChanged, Array.Empty<PanelLayout>());
+                canvas.OnLayoutChanged(LayoutChangeType.EditModeChanged, []);
             }
         }
 
@@ -1130,7 +1138,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             {
                 canvas.Configuration.Grid.Mode = (GridMode)e.NewValue;
                 canvas.RefreshGrid();
-                canvas.OnLayoutChanged(LayoutChangeType.GridConfigurationChanged, Array.Empty<PanelLayout>());
+                canvas.OnLayoutChanged(LayoutChangeType.GridConfigurationChanged, []);
             }
         }
 
@@ -1173,7 +1181,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             // Update canvas size to accommodate loaded layout
             UpdateCanvasSize();
 
-            OnLayoutChanged(LayoutChangeType.LayoutLoaded, layouts.ToArray());
+            OnLayoutChanged(LayoutChangeType.LayoutLoaded, [.. layouts]);
         }
 
         private void SetupPanelEvents(TilePanel panel)
@@ -1224,7 +1232,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
                 var panelLayout = panel.GetLayout();
                 OnPanelResized(new PanelEventArgs(panelLayout));
-                OnLayoutChanged(LayoutChangeType.PanelResized, new[] { panelLayout });
+                OnLayoutChanged(LayoutChangeType.PanelResized, [panelLayout]);
             }
         }
 
@@ -1331,7 +1339,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             if (GridMode != GridMode.Flexible || oldColumnWidths == null)
                 return;
 
-            var newColumnWidths = _gridService.CalculateColumnWidths(Configuration.Grid, GetAvailableContentWidth());
+            var newColumnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, GetAvailableContentWidth());
 
             foreach (var panel in Panels)
             {
@@ -1410,7 +1418,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         {
             if (_gridLinesCanvas == null) return;
 
-            var columnWidths = _gridService.CalculateColumnWidths(Configuration.Grid, width);
+            var columnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, width);
             var stroke = new SolidColorBrush((Color)ColorConverter.ConvertFromString(Configuration.Grid.GridLineColor));
             var gridSize = Configuration.Grid.GridSize;
 
@@ -1448,12 +1456,15 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         #region Event Raising Methods
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         protected virtual void OnPanelAdded(PanelEventArgs e) => PanelAdded?.Invoke(this, e);
         protected virtual void OnPanelRemoved(PanelEventArgs e) => PanelRemoved?.Invoke(this, e);
         protected virtual void OnPanelMoved(PanelEventArgs e) => PanelMoved?.Invoke(this, e);
         protected virtual void OnPanelResized(PanelEventArgs e) => PanelResized?.Invoke(this, e);
         protected virtual void OnLayoutChanged(LayoutChangeType changeType, PanelLayout[] panels) =>
             LayoutChanged?.Invoke(this, new LayoutEventArgs(changeType, panels));
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
+
 
         #endregion
     }

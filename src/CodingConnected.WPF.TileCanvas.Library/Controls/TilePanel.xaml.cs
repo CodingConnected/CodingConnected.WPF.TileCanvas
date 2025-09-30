@@ -13,14 +13,16 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
     /// <summary>
     /// Event args for color changed events
     /// </summary>
-    public class ColorChangedEventArgs : EventArgs
+    /// <remarks>
+    /// Default constructor takes the newly selected color as parameter
+    /// </remarks>
+    /// <param name="selectedColor">Newly selected color</param>
+    public class ColorChangedEventArgs(Color selectedColor) : EventArgs
     {
-        public Color SelectedColor { get; }
-        
-        public ColorChangedEventArgs(Color selectedColor)
-        {
-            SelectedColor = selectedColor;
-        }
+        /// <summary>
+        /// The newly selected color
+        /// </summary>
+        public Color SelectedColor { get; } = selectedColor;
     }
 }
 
@@ -46,6 +48,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         #region Dependency Properties
 
+#pragma warning disable CS1591 // Missing XML comment for publicly visible type or member
         public static readonly DependencyProperty TitleProperty =
             DependencyProperty.Register(nameof(Title), typeof(string), typeof(TilePanel),
                 new PropertyMetadata(string.Empty));
@@ -94,6 +97,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         public static readonly DependencyProperty IsEditingTitleProperty =
             DependencyProperty.Register(nameof(IsEditingTitle), typeof(bool), typeof(TilePanel),
                 new PropertyMetadata(false, OnIsEditingTitleChanged));
+#pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
         #endregion
 
@@ -231,6 +235,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         #region Constructor
 
+        /// <summary>
+        /// Default constructor
+        /// </summary>
         public TilePanel()
         {
             InitializeComponent();
@@ -338,6 +345,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         #region Template Parts
 
+        /// <summary>
+        /// Actions to perform when the control template is applied
+        /// </summary>
         public override void OnApplyTemplate()
         {
             // Clean up old event handlers
@@ -481,7 +491,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             // Define a set of common colors for the palette
             var colors = typeof(Colors).GetProperties(BindingFlags.Static | BindingFlags.Public)
                 .Where(p => p.PropertyType == typeof(Color))
-                .Select(p => (Color)p.GetValue(null))
+                .Select(p => (Color)p.GetValue(null)!)
                 .OrderBy(c => {
                     var (r, g, b) = (c.R / 255f, c.G / 255f, c.B / 255f);
                     var (max, min) = (Math.Max(r, Math.Max(g, b)), Math.Min(r, Math.Min(g, b)));

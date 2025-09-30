@@ -19,7 +19,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
         /// <summary>
         /// Calculates column widths for flexible grid mode
         /// </summary>
-        public double[] CalculateColumnWidths(GridConfiguration config, double availableWidth)
+        public static double[] CalculateColumnWidths(GridConfiguration config, double availableWidth)
         {
             if (config.Mode != GridMode.Flexible)
                 throw new InvalidOperationException("Column width calculation is only valid for flexible grid mode");
@@ -90,7 +90,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
         /// <summary>
         /// Calculates how many columns a given width spans in flexible mode, accounting for panel margins
         /// </summary>
-        public int CalculateColumnSpan(double width, double[] columnWidths, double panelMargin)
+        public static int CalculateColumnSpan(double width, double[] columnWidths, double panelMargin)
         {
             if (columnWidths.Length == 0) return 1;
             
@@ -143,7 +143,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
         /// <summary>
         /// Calculates width for a given number of columns, accounting for panel margins
         /// </summary>
-        public double CalculateWidthForColumnSpan(int columnSpan, double[] columnWidths, double panelMargin)
+        public static double CalculateWidthForColumnSpan(int columnSpan, double[] columnWidths, double panelMargin)
         {
             if (columnSpan <= 0) return Math.Max(0, columnWidths.FirstOrDefault() - (panelMargin * 2));
 
@@ -168,7 +168,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
         /// <summary>
         /// Finds the starting column index for a given X position, accounting for panel margins
         /// </summary>
-        public int CalculateStartColumn(double xPosition, double[] columnWidths, double panelMargin)
+        public static int CalculateStartColumn(double xPosition, double[] columnWidths, double panelMargin)
         {
             if (columnWidths.Length == 0) return 0;
             
@@ -217,7 +217,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
         /// <summary>
         /// Calculates X position for a given column index, accounting for panel margins
         /// </summary>
-        public double CalculatePositionForColumn(int columnIndex, double[] columnWidths, double panelMargin)
+        public static double CalculatePositionForColumn(int columnIndex, double[] columnWidths, double panelMargin)
         {
             if (columnIndex <= 0) return Math.Max(0, -panelMargin);
 
@@ -231,7 +231,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
             return Math.Max(0, position - panelMargin);
         }
 
-        private Point SnapToFixedGrid(Point position, int gridSize)
+        private static Point SnapToFixedGrid(Point position, int gridSize)
         {
             var snappedX = Math.Round(position.X / gridSize) * gridSize;
             var snappedY = Math.Round(position.Y / gridSize) * gridSize;
@@ -268,7 +268,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
             return new Point(snappedX, snappedY);
         }
 
-        private Size SnapSizeToFixedGrid(Size size, int gridSize)
+        private static Size SnapSizeToFixedGrid(Size size, int gridSize)
         {
             var snappedWidth = Math.Round(size.Width / gridSize) * gridSize;
             var snappedHeight = Math.Round(size.Height / gridSize) * gridSize;

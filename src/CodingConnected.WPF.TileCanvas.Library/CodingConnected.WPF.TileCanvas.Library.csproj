@@ -24,6 +24,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageTags>WPF;Canvas;Tiles;DragDrop;Grid;Layout;Dashboard;MVVM;Panels;Resizable;Interactive</PackageTags>
     <PackageReleaseNotes>Initial release of CodingConnected.WPF.TileCanvas
     
@@ -45,6 +46,11 @@ Features:
     <PackageProjectUrl>https://github.com/CodingConnected/CodingConnected.WPF.TileCanvas</PackageProjectUrl>
     <RepositoryUrl>https://github.com/CodingConnected/CodingConnected.WPF.TileCanvas</RepositoryUrl>
     <RepositoryBranch>main</RepositoryBranch>
+    
+    <!-- Package Signing (optional - can be enabled via -p:SignPackage=true) -->
+    <SignPackage Condition="'$(SignPackage)' == ''">false</SignPackage>
+    <PackageCertificateSubjectName Condition="'$(PackageCertificateSubjectName)' == ''">CodingConnected e.U.</PackageCertificateSubjectName>
+    <PackageTimestampUrl Condition="'$(PackageTimestampUrl)' == ''">http://timestamp.sectigo.com</PackageTimestampUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -53,6 +59,7 @@ Features:
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" />
   </ItemGroup>
 
 </Project>

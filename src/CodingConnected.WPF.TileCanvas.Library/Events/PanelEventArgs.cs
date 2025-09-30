@@ -18,6 +18,11 @@ namespace CodingConnected.WPF.TileCanvas.Library.Events
         /// </summary>
         public object? Data { get; }
 
+        /// <summary>
+        /// Constructor for PanelEventArgs
+        /// </summary>
+        /// <param name="panel">The panel layout</param>
+        /// <param name="data">Object data</param>
         public PanelEventArgs(PanelLayout panel, object? data = null)
         {
             Panel = panel;

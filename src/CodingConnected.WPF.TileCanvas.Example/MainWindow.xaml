@@ -28,56 +28,66 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
+        <!-- Menu -->
+        <Menu>
+            <MenuItem Header="_File">
+                <MenuItem Header="Save Layout" Command="{Binding SaveLayoutCommand}"/>
+                <MenuItem Header="Load Layout" Command="{Binding LoadLayoutCommand}"/>
+                <Separator/>
+                <MenuItem Header="Exit" Command="ApplicationCommands.Close"/>
+            </MenuItem>
+            <MenuItem Header="_Panels">
+                <MenuItem Header="Add Panel" Command="{Binding AddPaneCommand}"/>
+                <MenuItem Header="Add Chart Panel" Command="{Binding AddChartPaneCommand}"/>
+                <MenuItem Header="Add Stats Panel" Command="{Binding AddStatsPaneCommand}"/>
+                <MenuItem Header="Add Table Panel" Command="{Binding AddTablePaneCommand}"/>
+                <MenuItem Header="Clear All Panels" Command="{Binding ClearAllPanesCommand}"/>
+                <Separator/>
+                <MenuItem Header="Snap Panels" Command="{Binding SnapPanelsCommand}"/>
+            </MenuItem>
+        </Menu>
+        
         <!-- Toolbar -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Background="#f0f0f0" Margin="5">
-            <Button Content="Add Panel" Command="{Binding AddPaneCommand}" Margin="5" Padding="10,5"/>
-            <Button Content="Chart" Command="{Binding AddChartPaneCommand}" Margin="2,5" Padding="8,5" Background="#FFE6F3FF"/>
-            <Button Content="Stats" Command="{Binding AddStatsPaneCommand}" Margin="2,5" Padding="8,5" Background="#FFE6FFE6"/>
-            <Button Content="Table" Command="{Binding AddTablePaneCommand}" Margin="2,5" Padding="8,5" Background="#FFFFE6E6"/>
-            <Button Content="Save Layout" Command="{Binding SaveLayoutCommand}" Margin="5" Padding="10,5"/>
-            <Button Content="Load Layout" Command="{Binding LoadLayoutCommand}" Margin="5" Padding="10,5"/>
-            <Button Content="Clear All" Command="{Binding ClearAllPanesCommand}" Margin="5" Padding="10,5"/>
-            <Button Content="Snap Panels" Command="{Binding SnapPanelsCommand}" Margin="5" Padding="10,5" Background="#FFFFF0E6"/>
-            <Separator Margin="10,0"/>
-
-            <TextBlock Text="Grid Mode:" VerticalAlignment="Center" Margin="10,0,5,0"/>
-            <ComboBox Width="100" VerticalAlignment="Center" Margin="0,0,10,0"
+        <ToolBar Grid.Row="1">
+            <TextBlock Text="Grid Mode:" VerticalAlignment="Center" Margin="5"/>
+            <ComboBox Width="100" VerticalAlignment="Center" Margin="2"
                       SelectedValue="{Binding GridMode}" 
                       SelectedValuePath="Content">
                 <ComboBoxItem Content="Fixed"/>
                 <ComboBoxItem Content="Flexible"/>
             </ComboBox>
 
-            <TextBlock Text="Columns:" VerticalAlignment="Center" Margin="10,0,5,0"/>
-            <TextBox Text="{Binding ColumnCount}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBlock Text="Columns:" VerticalAlignment="Center" Margin="5,0,2,0" />
+            <TextBox Text="{Binding ColumnCount}" Width="40" VerticalAlignment="Center" Margin="0,0,5,0" />
 
-            <TextBlock Text="Min. column width:" VerticalAlignment="Center" Margin="10,0,5,0"/>
-            <TextBox Text="{Binding MinColumnWidth}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBlock Text="Min. column width:" VerticalAlignment="Center" Margin="5,0,2,0"/>
+            <TextBox Text="{Binding MinColumnWidth}" Width="40" VerticalAlignment="Center" Margin="0,0,5,0" />
 
-            <TextBlock Text="Panel spacing:" VerticalAlignment="Center" Margin="10,0,5,0"/>
-            <TextBox Text="{Binding PanelSpacing}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBlock Text="Panel spacing:" VerticalAlignment="Center" Margin="5,0,2,0"/>
+            <TextBox Text="{Binding PanelSpacing}" Width="40" VerticalAlignment="Center" Margin="0,0,5,0"/>
 
-            <TextBlock Text="Panel gap:" VerticalAlignment="Center" Margin="10,0,5,0"/>
-            <TextBox Text="{Binding PanelGap}" Width="40" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBlock Text="Panel gap:" VerticalAlignment="Center" Margin="5,0,2,0"/>
+            <TextBox Text="{Binding PanelGap}" Width="40" VerticalAlignment="Center" Margin="0,0,5,0"/>
 
             <CheckBox Content="Show Grid" IsChecked="{Binding ShowGrid}"
-                     VerticalAlignment="Center" Margin="10,0,10,0"/>
+                     VerticalAlignment="Center" Margin="2" />
 
             <CheckBox Content="Edit Mode" IsChecked="{Binding IsEditMode}"
-                     VerticalAlignment="Center" Margin="10,0,10,0"/>
+                     VerticalAlignment="Center" Margin="2" />
 
             <CheckBox Content="Snap Drag" IsChecked="{Binding SnapDrag}"
-                     VerticalAlignment="Center" Margin="0,0,10,0"/>
+                     VerticalAlignment="Center" Margin="2"/>
 
             <CheckBox Content="Snap Resize" IsChecked="{Binding SnapResize}"
-                     VerticalAlignment="Center" Margin="0,0,0,0"/>
-        </StackPanel>
+                     VerticalAlignment="Center" Margin="2"/>
+        </ToolBar>
 
         <!-- Tile Canvas with MVVM Binding -->
-        <tiles:TileCanvas Grid.Row="1" Name="MainTileCanvas"
+        <tiles:TileCanvas Grid.Row="2" Name="MainTileCanvas"
                           MinWidth="400" MinHeight="400"
                           PaneContentTemplateSelector="{StaticResource PaneTemplateSelector}"
                           ItemsSource="{Binding Path=Panes}"

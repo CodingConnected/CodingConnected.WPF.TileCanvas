@@ -600,6 +600,12 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         private void StartTitleEdit()
         {
+            // Set the TextBox text manually (since we removed the binding)
+            if (_titleEditor != null)
+            {
+                _titleEditor.Text = Title;
+            }
+            
             IsEditingTitle = true;
         }
 
@@ -610,11 +616,12 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 IsEditingTitle = false;
                 
                 // Get the updated title from the TextBox and raise the event
-                if (_titleEditor != null && !string.IsNullOrEmpty(_titleEditor.Text))
+                if (_titleEditor != null)
                 {
-                    var newTitle = _titleEditor.Text.Trim();
-                    if (newTitle != Title)
+                    var newTitle = _titleEditor.Text?.Trim() ?? string.Empty;
+                    if (!string.IsNullOrEmpty(newTitle) && newTitle != Title)
                     {
+                        System.Diagnostics.Debug.WriteLine($"[TilePanel] Title changed from '{Title}' to '{newTitle}'");
                         Title = newTitle;
                         TitleChanged?.Invoke(this, newTitle);
                     }

@@ -37,7 +37,7 @@
                                         Text="{Binding Title, ElementName=Root}"
                                         FontWeight="Bold"
                                         FontSize="14"
-                                        VerticalAlignment="Center"
+                                        VerticalAlignment="Center" HorizontalAlignment="Left"
                                         Cursor="IBeam">
                                     <TextBlock.Style>
                                         <Style TargetType="TextBlock">
@@ -53,7 +53,6 @@
 
                                 <!-- Title Edit Mode - Overlaid on same Grid cell -->
                                 <TextBox x:Name="PART_TitleEditor"
-                                    Text="{Binding Title, ElementName=Root, UpdateSourceTrigger=PropertyChanged}"
                                     FontWeight="Bold"
                                     FontSize="14"
                                     VerticalAlignment="Center" HorizontalAlignment="Left"

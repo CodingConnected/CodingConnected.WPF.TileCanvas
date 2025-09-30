@@ -1,5 +1,7 @@
 # CodingConnected.WPF.TileCanvas
 
+[![NuGet version (CodingConnected.WPF.TileCanvas)](https://img.shields.io/nuget/v/CodingConnected.WPF.TileCanvas.svg?style=flat-square)](https://www.nuget.org/packages/CodingConnected.WPF.TileCanvas/)
+
 A flexible, responsive tile canvas system for WPF applications with drag-and-drop, resizing, and grid-based layout management.
 
 ## Features

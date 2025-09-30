@@ -403,7 +403,7 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                         var loadGridConfig = TileCanvas.Configuration?.Grid;
                         if (loadGridConfig != null)
                         {
-                            var loadColumnWidths = _gridCalculationService.CalculateColumnWidths(loadGridConfig, loadCanvasWidth);
+                            var loadColumnWidths = GridCalculationService.CalculateColumnWidths(loadGridConfig, loadCanvasWidth);
                             System.Diagnostics.Debug.WriteLine($"[Load] Current column widths: [{string.Join(", ", Array.ConvertAll(loadColumnWidths, x => x.ToString("F1")))}]");
                             
                             foreach (var pane in Panes)
@@ -498,7 +498,7 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                         {
                             System.Diagnostics.Debug.WriteLine($"[GridSave] {pane.Title}: GridConfig - Mode={gridConfig.Mode}, ColumnCount={gridConfig.ColumnCount}, MinWidth={gridConfig.MinColumnWidth}");
                             
-                            var columnWidths = _gridCalculationService.CalculateColumnWidths(gridConfig, canvasWidth);
+                            var columnWidths = GridCalculationService.CalculateColumnWidths(gridConfig, canvasWidth);
                             System.Diagnostics.Debug.WriteLine($"[GridSave] {pane.Title}: Column widths calculated: [{string.Join(", ", Array.ConvertAll(columnWidths, x => x.ToString("F1")))}]");
                             
                             layout.GridColumn = _gridCalculationService.CalculateStartColumn(pane.X, columnWidths);
@@ -576,7 +576,7 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                         if (gridConfig != null)
                         {
                             // Calculate new column widths for current canvas size
-                            var newColumnWidths = _gridCalculationService.CalculateColumnWidths(gridConfig, currentCanvasWidth);
+                            var newColumnWidths = GridCalculationService.CalculateColumnWidths(gridConfig, currentCanvasWidth);
                             
                             // Calculate new position and size based on saved grid position
                             var newX = _gridCalculationService.CalculatePositionForColumn(layout.GridColumn.Value, newColumnWidths);
@@ -679,7 +679,7 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                     currentCanvasWidth = Math.Max(ColumnCount * MinColumnWidth, currentCanvasWidth);
                     
                     // Calculate current column widths
-                    var columnWidths = _gridCalculationService.CalculateColumnWidths(gridConfig, currentCanvasWidth);
+                    var columnWidths = GridCalculationService.CalculateColumnWidths(gridConfig, currentCanvasWidth);
                     
                     // Calculate correct position and width for current canvas
                     var correctX = _gridCalculationService.CalculatePositionForColumn(savedColumn, columnWidths);

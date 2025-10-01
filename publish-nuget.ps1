@@ -5,19 +5,16 @@
 param(
     [Parameter(Mandatory=$false)]
     [string]$Version = "",
-    
-    [Parameter(Mandatory=$false)]
-    [string]$ApiKey = "",
-    
+
     [Parameter(Mandatory=$false)]
     [switch]$SkipSigning = $false,
-    
+
     [Parameter(Mandatory=$false)]
     [switch]$DryRun = $false,
-    
+
     [Parameter(Mandatory=$false)]
     [string]$Source = "https://api.nuget.org/v3/index.json",
-    
+
     [Parameter(Mandatory=$false)]
     [switch]$Force = $false
 )
@@ -140,18 +137,19 @@ if ($DryRun) {
     Write-Host "Dry run completed - package ready for publishing!" -ForegroundColor Green
     Write-Host ""
     Write-Host "To publish for real, run:" -ForegroundColor Cyan
-    Write-Host ".\publish-nuget.ps1 -ApiKey <your-api-key>" -ForegroundColor White
+    Write-Host ".\publish-nuget.ps1" -ForegroundColor White
 } else {
     Write-Host "Step 6: Publishing to NuGet.org" -ForegroundColor Yellow
-    
+
+    Write-Host ""
+    Write-Host "Please enter your NuGet API key:" -ForegroundColor Cyan
+    Write-Host "(Get your API key from https://www.nuget.org/account/apikeys)" -ForegroundColor Gray
+    $ApiKey = Read-Host -AsSecureString
+    $ApiKey = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto([System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($ApiKey))
+
     if ([string]::IsNullOrEmpty($ApiKey)) {
         Write-Host ""
-        Write-Host "API Key required for publishing. You can:" -ForegroundColor Red
-        Write-Host "1. Get your API key from https://www.nuget.org/account/apikeys" -ForegroundColor Gray
-        Write-Host "2. Run: .\publish-nuget.ps1 -ApiKey <your-key>" -ForegroundColor Gray
-        Write-Host "3. Or set it globally: nuget setApiKey <your-key>" -ForegroundColor Gray
-        Write-Host ""
-        Write-Error "API Key required for publishing"
+        Write-Error "API Key is required for publishing"
     }
     
     Write-Host "Publishing package to NuGet.org..." -ForegroundColor Gray

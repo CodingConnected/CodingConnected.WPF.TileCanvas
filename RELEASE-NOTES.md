@@ -1,5 +1,16 @@
 # Release Notes
 
+## Version 1.0.1 (2025-10-01)
+
+### ✨ New Features
+- **Optional Headers**: Panes can now be created without headers, allowing for cleaner layouts when header functionality is not needed
+
+### 🔧 Technical Details
+- Added support for headerless pane configuration
+- Maintains full backward compatibility with existing implementations
+
+---
+
 ## Version 1.0.0 (2024-09-30)
 
 🎉 **Initial Release - CodingConnected.WPF.TileCanvas**

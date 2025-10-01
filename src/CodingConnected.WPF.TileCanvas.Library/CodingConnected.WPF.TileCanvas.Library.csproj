@@ -8,16 +8,16 @@
     <!-- NuGet Package Configuration -->
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>CodingConnected.WPF.TileCanvas</PackageId>
-    <PackageVersion>1.0.0</PackageVersion>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <PackageVersion>1.0.1</PackageVersion>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
     
     <!-- Package Metadata -->
     <Title>CodingConnected WPF TileCanvas</Title>
     <Authors>CodingConnected</Authors>
     <Company>CodingConnected</Company>
     <Product>CodingConnected.WPF.TileCanvas</Product>
-    <Copyright>Copyright © 2024 CodingConnected</Copyright>
+    <Copyright>Copyright © 2025 CodingConnected</Copyright>
     <Description>A flexible, responsive tile canvas system for WPF applications with drag-and-drop, resizing, and grid-based layout management. Supports MVVM binding, layout persistence, and customizable grid layouts.</Description>
     <PackageProjectUrl>https://github.com/CodingConnected/CodingConnected.WPF.TileCanvas</PackageProjectUrl>
     <RepositoryUrl>https://github.com/CodingConnected/CodingConnected.WPF.TileCanvas</RepositoryUrl>

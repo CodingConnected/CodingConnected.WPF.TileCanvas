@@ -175,14 +175,35 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
         {
             var random = new Random();
             var color = _panelColors[random.Next(_panelColors.Length)];
-            
+
             var tablePane = new TablePaneViewModel($"Data Table {++_panelCounter}")
             {
                 X = random.Next(0, 500),
                 Y = random.Next(0, 300),
                 HeaderColor = color.ToString()
             };
-            
+
+            Panes.Add(tablePane);
+        }
+
+        /// <summary>
+        /// Command to add a new table pane
+        /// </summary>
+        [RelayCommand]
+        private void AddLabelPane()
+        {
+            var random = new Random();
+            var color = _panelColors[random.Next(_panelColors.Length)];
+
+            var tablePane = new LabelPaneViewModel($"Label {++_panelCounter}")
+            {
+                X = random.Next(0, 500),
+                Y = random.Next(0, 300),
+                HeaderColor = color.ToString(),
+                ShowHeader = false,
+                BorderThickness = 0
+            };
+
             Panes.Add(tablePane);
         }
 
@@ -463,6 +484,9 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                     Width = pane.Width,
                     Height = pane.Height,
                     HeaderColor = pane.HeaderColor,
+                    BackgroundColor = pane.BackgroundColor,
+                    BorderColor = pane.BorderColor,
+                    BorderThickness = pane.BorderThickness,
                     PanelType = pane.PaneType,
                     GridMode = GridMode,
                     ColumnCount = ColumnCount
@@ -757,7 +781,10 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                 viewModel.Width = layout.Width;
                 viewModel.Height = layout.Height;
                 viewModel.HeaderColor = layout.HeaderColor;
-
+                viewModel.BackgroundColor = layout.BackgroundColor;
+                viewModel.BorderColor = layout.BorderColor;
+                viewModel.BorderThickness = layout.BorderThickness;
+                
                 // Restore ViewModel-specific data from app data if available
                 if (viewModelData != null && viewModelData.TryGetValue(layout.Id, out var appData))
                 {

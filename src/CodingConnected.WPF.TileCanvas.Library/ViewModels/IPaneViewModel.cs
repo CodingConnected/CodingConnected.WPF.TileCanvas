@@ -43,6 +43,26 @@ namespace CodingConnected.WPF.TileCanvas.Library.ViewModels
         string HeaderColor { get; set; }
 
         /// <summary>
+        /// Pane background color (as hex string)
+        /// </summary>
+        string BackgroundColor { get; set; }
+
+        /// <summary>
+        /// Pane border color (as hex string)
+        /// </summary>
+        string BorderColor { get; set; }
+
+        /// <summary>
+        /// Pane border thickness
+        /// </summary>
+        double BorderThickness { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether the header should be displayed
+        /// </summary>
+        bool ShowHeader { get; set; }
+
+        /// <summary>
         /// Type identifier for the pane (used for template selection)
         /// </summary>
         string PaneType { get; }

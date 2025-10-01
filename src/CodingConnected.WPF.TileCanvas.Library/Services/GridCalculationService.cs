@@ -307,7 +307,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
 
             // For height, use regular grid snapping
             var snappedHeight = Math.Round(size.Height / config.GridSize) * config.GridSize;
-            snappedHeight = Math.Max(config.GridSize * 2, snappedHeight);
+            snappedHeight = Math.Max(config.GridSize, snappedHeight);
 
             return new Size(bestWidth, snappedHeight);
         }

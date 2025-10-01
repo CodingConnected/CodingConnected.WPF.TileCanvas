@@ -26,10 +26,15 @@ namespace CodingConnected.WPF.TileCanvas.Example.Selectors
         public DataTemplate? TableTemplate { get; set; }
 
         /// <summary>
+        /// DataTemplate for label panes
+        /// </summary>
+        public DataTemplate? LabelTemplate { get; set; }
+
+        /// <summary>
         /// Default template for unknown or unspecified pane types
         /// </summary>
         public DataTemplate? DefaultTemplate { get; set; }
-
+        
         /// <summary>
         /// Selects the appropriate DataTemplate based on the item's ViewModel type
         /// </summary>
@@ -45,6 +50,7 @@ namespace CodingConnected.WPF.TileCanvas.Example.Selectors
                     "Chart" => ChartTemplate,
                     "Stats" => StatsTemplate,
                     "Table" => TableTemplate,
+                    "Label" => LabelTemplate,
                     _ => DefaultTemplate
                 };
             }
@@ -55,6 +61,7 @@ namespace CodingConnected.WPF.TileCanvas.Example.Selectors
                 ChartPaneViewModel => ChartTemplate,
                 StatsPaneViewModel => StatsTemplate,
                 TablePaneViewModel => TableTemplate,
+                LabelPaneViewModel => LabelTemplate,
                 _ => DefaultTemplate
             };
         }

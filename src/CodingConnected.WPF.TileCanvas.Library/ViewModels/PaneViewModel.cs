@@ -50,6 +50,30 @@ namespace CodingConnected.WPF.TileCanvas.Library.ViewModels
         private string _headerColor = "#FF87CEEB"; // LightBlue
 
         /// <summary>
+        /// Pane background color (as hex string)
+        /// </summary>
+        [ObservableProperty]
+        private string _backgroundColor = "#FFFFFFFF"; // White
+
+        /// <summary>
+        /// Pane border color (as hex string)
+        /// </summary>
+        [ObservableProperty]
+        private string _borderColor = "#FFBBBBBB"; // Gray
+
+        /// <summary>
+        /// Pane border thickness
+        /// </summary>
+        [ObservableProperty]
+        private double _borderThickness = 2.0;
+
+        /// <summary>
+        /// Whether the pane header should be shown
+        /// </summary>
+        [ObservableProperty]
+        private bool _showHeader = true;
+
+        /// <summary>
         /// Whether the pane can be closed by the user
         /// </summary>
         [ObservableProperty]

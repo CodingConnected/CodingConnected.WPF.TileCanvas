@@ -21,6 +21,7 @@
                                             ChartTemplate="{StaticResource ChartPaneTemplate}"
                                             StatsTemplate="{StaticResource StatsPaneTemplate}"
                                             TableTemplate="{StaticResource TablePaneTemplate}"
+                                            LabelTemplate="{StaticResource LabelPaneTemplate}"
                                             DefaultTemplate="{StaticResource DefaultPaneTemplate}"/>
         </ResourceDictionary>
     </Window.Resources>
@@ -45,6 +46,7 @@
                 <MenuItem Header="Add Chart Panel" Command="{Binding AddChartPaneCommand}"/>
                 <MenuItem Header="Add Stats Panel" Command="{Binding AddStatsPaneCommand}"/>
                 <MenuItem Header="Add Table Panel" Command="{Binding AddTablePaneCommand}"/>
+                <MenuItem Header="Add Label Panel" Command="{Binding AddLabelPaneCommand}"/>
                 <MenuItem Header="Clear All Panels" Command="{Binding ClearAllPanesCommand}"/>
                 <Separator/>
                 <MenuItem Header="Snap Panels" Command="{Binding SnapPanelsCommand}"/>

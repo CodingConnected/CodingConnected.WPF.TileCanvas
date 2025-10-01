@@ -116,7 +116,20 @@
             </StackPanel>
         </Grid>
     </DataTemplate>
-
+    
+    <!-- Label Pane DataTemplate -->
+    <DataTemplate x:Key="LabelPaneTemplate" DataType="{x:Type viewModels:LabelPaneViewModel}">
+        <Grid>
+            <TextBlock Text="{Binding Path=Title}" 
+                       FontSize="24" 
+                       FontWeight="Bold" 
+                       Foreground="DarkSlateGray" 
+                       HorizontalAlignment="Center" 
+                       VerticalAlignment="Center" 
+                       TextWrapping="Wrap"/>
+        </Grid>
+    </DataTemplate>
+    
     <!-- Default Pane DataTemplate -->
     <DataTemplate x:Key="DefaultPaneTemplate">
         <Border Margin="10" Background="#FFF5F5F5" BorderBrush="#FFE0E0E0" BorderThickness="1" CornerRadius="4">

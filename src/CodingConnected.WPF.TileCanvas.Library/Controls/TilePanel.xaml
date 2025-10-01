@@ -6,9 +6,9 @@
     <UserControl.Template>
         <ControlTemplate TargetType="local:TilePanel">
             <Grid>
-                <Border BorderBrush="{TemplateBinding BorderBrush}"
-                        BorderThickness="{TemplateBinding BorderThickness}"
-                        Background="{TemplateBinding Background}"
+                <Border BorderBrush="{TemplateBinding PaneBorderBrush}"
+                        BorderThickness="{TemplateBinding PaneBorderThickness}"
+                        Background="{TemplateBinding PaneBackgroundBrush}"
                         CornerRadius="6">
                 <Border.Margin>
                     <Binding Path="PanelMargin" RelativeSource="{RelativeSource TemplatedParent}"/>
@@ -19,15 +19,15 @@
 
                 <Grid ClipToBounds="True">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="35"/>
+                        <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
                     <!-- Header -->
                     <Border x:Name="PART_Header" Grid.Row="0" CornerRadius="6,6,0,0"
                             Background="{Binding HeaderBrush, ElementName=Root}"
-                            BorderBrush="Gray" 
-                            BorderThickness="0,0,0,1"
+                            BorderBrush="Gray" Visibility="{Binding HeaderVisibility, ElementName=Root}"
+                            BorderThickness="0,0,0,1" Height="35"
                             Cursor="{Binding HeaderCursor, ElementName=Root}">
                         <Grid>
                             <!-- Title Container - Grid to overlay TextBox on TextBlock -->
@@ -36,7 +36,7 @@
                                 <TextBlock x:Name="PART_TitleDisplay"
                                         Text="{Binding Title, ElementName=Root}"
                                         FontWeight="Bold"
-                                        FontSize="14"
+                                        FontSize="14" 
                                         VerticalAlignment="Center" HorizontalAlignment="Left"
                                         Cursor="IBeam">
                                     <TextBlock.Style>
@@ -109,6 +109,29 @@
                         </Border.Margin>
                         <ContentPresenter Content="{TemplateBinding Content}"/>
                     </Border>
+                    
+                    
+                    <!-- Dragger when no Header -->
+                    <Border x:Name="PART_DragElementNoHeader" Grid.Row="1" CornerRadius="6,0,3,0"
+                        Background="LightGray" Opacity=".5"
+                        BorderBrush="Gray" Visibility="{Binding DragElementNoHeaderVisibility, ElementName=Root}"
+                        BorderThickness="0,0,1,1" Height="15" Width="15"
+                        HorizontalAlignment="Left" VerticalAlignment="Top"
+                        Cursor="{Binding HeaderCursor, ElementName=Root}">
+                    </Border>
+                    
+                    <!-- Close Button when no header -->
+                    <Button x:Name="PART_CloseButtonNoHeader"
+                           Content="✕" Grid.Row="1"
+                           Width="25" Height="25"
+                           HorizontalAlignment="Right"
+                           VerticalAlignment="Top"
+                           Margin="0,5,5,0"
+                           Background="Transparent"
+                           BorderThickness="0"
+                           FontWeight="Bold"
+                           Cursor="Hand"
+                           Visibility="{Binding CloseButtonNoHeaderVisibility, ElementName=Root}"/>
 
                     <!-- Resize Thumb -->
                     <Thumb x:Name="PART_ResizeThumb"

@@ -947,7 +947,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 Title = viewModel.Title,
                 Width = viewModel.Width,
                 Height = viewModel.Height,
-                PanelType = viewModel.PaneType
+                PanelType = viewModel.PaneType,
+                HeaderVisibility = viewModel.ShowHeader ? Visibility.Visible : Visibility.Collapsed,
             };
 
             // Set header color
@@ -963,6 +964,36 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                     // Use default if color parsing fails
                 }
             }
+
+            // Set background color
+            if (!string.IsNullOrEmpty(viewModel.BackgroundColor))
+            {
+                try
+                {
+                    var color = (Color)ColorConverter.ConvertFromString(viewModel.BackgroundColor);
+                    panel.PaneBackgroundBrush = new SolidColorBrush(color);
+                }
+                catch
+                {
+                    // Use default if color parsing fails
+                }
+            }
+
+            // Set border color
+            if (!string.IsNullOrEmpty(viewModel.BorderColor))
+            {
+                try
+                {
+                    var color = (Color)ColorConverter.ConvertFromString(viewModel.BorderColor);
+                    panel.PaneBorderBrush = new SolidColorBrush(color);
+                }
+                catch
+                {
+                    // Use default if color parsing fails
+                }
+            }
+
+            panel.PaneBorderThickness = new Thickness(viewModel.BorderThickness);
 
             // Set content using DataTemplateSelector if available
             if (PaneContentTemplateSelector != null)

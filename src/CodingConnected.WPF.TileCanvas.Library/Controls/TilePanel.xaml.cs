@@ -36,7 +36,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         #region Private Fields
 
         private Border? _header;
+        private Border? _noHeaderGrabber;
         private Button? _closeButton;
+        private Button? _closeButtonNoHeader;
         private Button? _colorButton;
         private Popup? _colorPopup;
         private UniformGrid? _colorGrid;
@@ -56,6 +58,22 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         public static readonly DependencyProperty HeaderBrushProperty =
             DependencyProperty.Register(nameof(HeaderBrush), typeof(Brush), typeof(TilePanel),
                 new PropertyMetadata(new SolidColorBrush(Colors.LightBlue)));
+
+        public static readonly DependencyProperty PaneBorderBrushProperty =
+            DependencyProperty.Register(nameof(PaneBorderBrush), typeof(Brush), typeof(TilePanel),
+                new PropertyMetadata(new SolidColorBrush(Colors.Gray)));
+
+        public static readonly DependencyProperty PaneBackgroundBrushProperty =
+            DependencyProperty.Register(nameof(PaneBackgroundBrush), typeof(Brush), typeof(TilePanel),
+                new PropertyMetadata(new SolidColorBrush(Colors.Transparent)));
+        
+        public static readonly DependencyProperty PaneBorderThicknessProperty =
+            DependencyProperty.Register(nameof(PaneBorderThickness), typeof(Thickness), typeof(TilePanel),
+                new PropertyMetadata(new Thickness(2.0)));
+
+        public static readonly DependencyProperty HeaderVisibilityProperty =
+            DependencyProperty.Register(nameof(HeaderVisibility), typeof(Visibility), typeof(TilePanel),
+                new PropertyMetadata(Visibility.Visible, OnHeaderVisibilityChanged));
 
         public static readonly DependencyProperty IsEditModeProperty =
             DependencyProperty.Register(nameof(IsEditMode), typeof(bool), typeof(TilePanel),
@@ -82,11 +100,23 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
         public static readonly DependencyProperty CloseButtonVisibilityProperty = CloseButtonVisibilityPropertyKey.DependencyProperty;
 
+        public static readonly DependencyPropertyKey CloseButtonNoHeaderVisibilityPropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(CloseButtonNoHeaderVisibility), typeof(Visibility), typeof(TilePanel),
+                new PropertyMetadata(Visibility.Visible));
+
+        public static readonly DependencyProperty CloseButtonNoHeaderVisibilityProperty = CloseButtonNoHeaderVisibilityPropertyKey.DependencyProperty;
+
         public static readonly DependencyPropertyKey ResizeThumbVisibilityPropertyKey =
             DependencyProperty.RegisterReadOnly(nameof(ResizeThumbVisibility), typeof(Visibility), typeof(TilePanel),
                 new PropertyMetadata(Visibility.Visible));
 
         public static readonly DependencyProperty ResizeThumbVisibilityProperty = ResizeThumbVisibilityPropertyKey.DependencyProperty;
+
+        public static readonly DependencyPropertyKey DragElementNoHeaderVisibilityPropertyKey =
+            DependencyProperty.RegisterReadOnly(nameof(DragElementNoHeaderVisibility), typeof(Visibility), typeof(TilePanel),
+                new PropertyMetadata(Visibility.Visible));
+
+        public static readonly DependencyProperty DragElementNoHeaderVisibilityProperty = DragElementNoHeaderVisibilityPropertyKey.DependencyProperty;
 
         public static readonly DependencyProperty ContentMarginProperty =
             DependencyProperty.Register(nameof(ContentMargin), typeof(Thickness), typeof(TilePanel), new PropertyMetadata(new Thickness(0)));
@@ -119,6 +149,42 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         {
             get => (Brush)GetValue(HeaderBrushProperty);
             set => SetValue(HeaderBrushProperty, value);
+        }
+
+        /// <summary>
+        /// Border brush for the panel
+        /// </summary>
+        public Brush PaneBorderBrush
+        {
+            get => (Brush)GetValue(PaneBorderBrushProperty);
+            set => SetValue(PaneBorderBrushProperty, value);
+        }
+
+        /// <summary>
+        /// Background for the panel
+        /// </summary>
+        public Brush PaneBackgroundBrush
+        {
+            get => (Brush)GetValue(PaneBackgroundBrushProperty);
+            set => SetValue(PaneBackgroundBrushProperty, value);
+        }
+
+        /// <summary>
+        /// Thickness of border brush for the panel
+        /// </summary>
+        public Thickness PaneBorderThickness
+        {
+            get => (Thickness)GetValue(PaneBorderThicknessProperty);
+            set => SetValue(PaneBorderThicknessProperty, value);
+        }
+
+        /// <summary>
+        /// Thickness of border brush for the panel
+        /// </summary>
+        public Visibility HeaderVisibility
+        {
+            get => (Visibility)GetValue(HeaderVisibilityProperty);
+            set => SetValue(HeaderVisibilityProperty, value);
         }
 
         /// <summary>
@@ -167,12 +233,30 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         }
 
         /// <summary>
+        /// Visibility of the close button
+        /// </summary>
+        public Visibility CloseButtonNoHeaderVisibility
+        {
+            get => (Visibility)GetValue(CloseButtonNoHeaderVisibilityProperty);
+            private set => SetValue(CloseButtonNoHeaderVisibilityPropertyKey, value);
+        }
+
+        /// <summary>
         /// Visibility of the resize thumb
         /// </summary>
         public Visibility ResizeThumbVisibility
         {
             get => (Visibility)GetValue(ResizeThumbVisibilityProperty);
             private set => SetValue(ResizeThumbVisibilityPropertyKey, value);
+        }
+
+        /// <summary>
+        /// Visibility of the resize thumb
+        /// </summary>
+        public Visibility DragElementNoHeaderVisibility
+        {
+            get => (Visibility)GetValue(DragElementNoHeaderVisibilityProperty);
+            private set => SetValue(DragElementNoHeaderVisibilityPropertyKey, value);
         }
 
         /// <summary>
@@ -241,11 +325,6 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         public TilePanel()
         {
             InitializeComponent();
-
-            // Set default values
-            BorderBrush = Brushes.Gray;
-            BorderThickness = new Thickness(2);
-            Background = Brushes.White;
 
             // Generate default ID if not set
             if (string.IsNullOrEmpty(PanelId))
@@ -357,9 +436,20 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 _header.MouseUp -= Header_MouseUp;
             }
 
+            if (_noHeaderGrabber != null)
+            {
+                _noHeaderGrabber.MouseDown -= Header_MouseDown;
+                _noHeaderGrabber.MouseUp -= Header_MouseUp;
+            }
+
             if (_closeButton != null)
             {
                 _closeButton.Click -= CloseButton_Click;
+            }
+
+            if (_closeButtonNoHeader != null)
+            {
+                _closeButtonNoHeader.Click -= CloseButton_Click;
             }
 
             if (_colorButton != null)
@@ -394,6 +484,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             _resizeThumb = GetTemplateChild("PART_ResizeThumb") as Thumb;
             _titleDisplay = GetTemplateChild("PART_TitleDisplay") as TextBlock;
             _titleEditor = GetTemplateChild("PART_TitleEditor") as TextBox;
+            _noHeaderGrabber = GetTemplateChild("PART_DragElementNoHeader") as Border;
+            _closeButtonNoHeader = GetTemplateChild("PART_CloseButtonNoHeader") as Button;
 
             // Set up new event handlers
             if (_header != null)
@@ -402,9 +494,20 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 _header.MouseUp += Header_MouseUp;
             }
 
+            if (_noHeaderGrabber != null)
+            {
+                _noHeaderGrabber.MouseDown += Header_MouseDown;
+                _noHeaderGrabber.MouseUp += Header_MouseUp;
+            }
+
             if (_closeButton != null)
             {
                 _closeButton.Click += CloseButton_Click;
+            }
+
+            if (_closeButtonNoHeader != null)
+            {
+                _closeButtonNoHeader.Click += CloseButton_Click;
             }
 
             if (_colorButton != null)
@@ -522,6 +625,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         {
             var newWidth = Width + e.HorizontalChange;
             var newHeight = Height + e.VerticalChange;
+            if (newWidth < 0) newWidth = 0;
+            if (newHeight < 0) newHeight = 0;
 
             // Find parent TileCanvas for grid snapping
             var parentCanvas = FindParentTileCanvas();
@@ -529,14 +634,14 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             {
                 // Apply grid snapping when enabled (works for both fixed and flexible modes)
                 var snappedSize = parentCanvas.SnapSizeToGrid(new Size(newWidth, newHeight));
-                Width = Math.Max(100, snappedSize.Width);
-                Height = Math.Max(100, snappedSize.Height);
+                Width = Math.Max(parentCanvas.Configuration.Grid.MinColumnWidth, snappedSize.Width);
+                Height = Math.Max(25, snappedSize.Height);
             }
-            else
+            else if (parentCanvas != null)
             {
                 // When snapping is disabled, apply direct sizing with minimum constraints
-                Width = Math.Max(100, newWidth);
-                Height = Math.Max(100, newHeight);
+                Width = Math.Max(parentCanvas.Configuration.Grid.MinColumnWidth, newWidth);
+                Height = Math.Max(25, newHeight);
             }
 
             Resized?.Invoke(this, EventArgs.Empty);
@@ -578,6 +683,14 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             }
         }
 
+        private static void OnHeaderVisibilityChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TilePanel panel)
+            {
+                panel.UpdateEditModeVisuals();
+            }
+        }
+
         private static void OnIsEditingTitleChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             if (d is TilePanel panel && (bool)e.NewValue)
@@ -596,6 +709,8 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             HeaderCursor = IsEditMode ? Cursors.SizeAll : Cursors.Arrow;
             CloseButtonVisibility = IsEditMode ? Visibility.Visible : Visibility.Hidden;
             ResizeThumbVisibility = IsEditMode ? Visibility.Visible : Visibility.Hidden;
+            CloseButtonNoHeaderVisibility = IsEditMode && HeaderVisibility != Visibility.Visible ? Visibility.Visible : Visibility.Hidden;
+            DragElementNoHeaderVisibility = IsEditMode && HeaderVisibility != Visibility.Visible ? Visibility.Visible : Visibility.Hidden;
         }
 
         private object? GetContentData()

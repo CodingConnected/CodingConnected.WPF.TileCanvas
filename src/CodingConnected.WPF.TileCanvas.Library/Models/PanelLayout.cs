@@ -1,4 +1,5 @@
 using CodingConnected.WPF.TileCanvas.Library.Enums;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace CodingConnected.WPF.TileCanvas.Library.Models
 {
@@ -41,6 +42,21 @@ namespace CodingConnected.WPF.TileCanvas.Library.Models
         /// Header background color (as string representation)
         /// </summary>
         public string HeaderColor { get; set; } = "#FF87CEEB";
+
+        /// <summary>
+        /// Pane background color (as hex string)
+        /// </summary>
+        public string BackgroundColor { get; set; } = "#FFFFFFFF"; // White
+
+        /// <summary>
+        /// Pane border color (as hex string)
+        /// </summary>
+        public string BorderColor { get; set; } = "#FFBBBBBB"; // Gray
+
+        /// <summary>
+        /// Pane border thickness
+        /// </summary>
+        public double BorderThickness { get; set; } = 2.0;
 
         /// <summary>
         /// Optional content data for the panel

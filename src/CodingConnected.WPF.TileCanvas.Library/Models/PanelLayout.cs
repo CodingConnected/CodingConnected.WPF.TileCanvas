@@ -67,6 +67,16 @@ namespace CodingConnected.WPF.TileCanvas.Library.Models
         /// Panel type identifier for custom panel types
         /// </summary>
         public string? PanelType { get; set; }
+
+        /// <summary>
+        /// Closeable pane or not
+        /// </summary>
+        public bool CanClose { get; set; } = true;
+        
+        /// <summary>
+        /// Show header or not
+        /// </summary>
+        public bool ShowHeader { get; set; } = true;
         
         /// <summary>
         /// Grid mode that was active when this layout was saved

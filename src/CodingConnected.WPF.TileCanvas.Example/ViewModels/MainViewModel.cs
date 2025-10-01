@@ -488,8 +488,10 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                     BorderColor = pane.BorderColor,
                     BorderThickness = pane.BorderThickness,
                     PanelType = pane.PaneType,
+                    CanClose = pane.CanClose,
+                    ShowHeader = pane.ShowHeader,
                     GridMode = GridMode,
-                    ColumnCount = ColumnCount
+                    ColumnCount = ColumnCount,
                     // ContentData is not used since app-specific data is stored separately
                 };
                 
@@ -562,73 +564,6 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                 System.Diagnostics.Debug.WriteLine($"[GridSave] Final layout for {pane.Title}: GridMode={layout.GridMode}, GridColumn={layout.GridColumn}, GridColumnSpan={layout.GridColumnSpan}, CanvasWidth={layout.CanvasWidth}");
                 
                 yield return layout;
-            }
-        }
-
-        /// <summary>
-        /// Repositions a pane based on current grid configuration if it was saved in flexible grid mode
-        /// </summary>
-        private void RepositionPaneForCurrentGrid(IPaneViewModel viewModel, PanelLayout layout, AppCanvasSettings? savedSettings)
-        {
-            // Only reposition if the layout was saved in flexible grid mode and we have grid positioning data
-            if (layout.GridMode != GridMode.Flexible || !layout.GridColumn.HasValue || !layout.GridColumnSpan.HasValue)
-            {
-                System.Diagnostics.Debug.WriteLine($"[GridReposition] Skipping {viewModel.Title}: GridMode={layout.GridMode}, Column={layout.GridColumn}, Span={layout.GridColumnSpan}");
-                return;
-            }
-            
-            // If we're still in the same grid mode and configuration, check if repositioning is needed
-            if (GridMode == GridMode.Flexible && TileCanvas != null)
-            {
-                try
-                {
-                    var currentCanvasWidth = TileCanvas.ActualWidth > 0 ? TileCanvas.ActualWidth : 1000;
-                    var savedCanvasWidth = layout.CanvasWidth ?? savedSettings?.CanvasWidth ?? currentCanvasWidth;
-                    var savedColumnCount = layout.ColumnCount ?? savedSettings?.ColumnCount ?? ColumnCount;
-                    
-                    System.Diagnostics.Debug.WriteLine($"[GridReposition] {viewModel.Title}: Current={currentCanvasWidth:F0}, Saved={savedCanvasWidth:F0}, CurrentCols={ColumnCount}, SavedCols={savedColumnCount}");
-                    
-                    // Only reposition if the canvas size or column configuration has changed significantly
-                    var canvasSizeTolerance = Math.Max(20, savedCanvasWidth * 0.02); // 2% or minimum 20px
-                    var canvasWidthDiff = Math.Abs(currentCanvasWidth - savedCanvasWidth);
-                    
-                    System.Diagnostics.Debug.WriteLine($"[GridReposition] {viewModel.Title}: Canvas size check - Diff: {canvasWidthDiff:F0}px, Tolerance: {canvasSizeTolerance:F0}px, Column change: {savedColumnCount != ColumnCount}");
-                    
-                    if (canvasWidthDiff > canvasSizeTolerance || savedColumnCount != ColumnCount)
-                    {
-                        var gridConfig = TileCanvas.Configuration?.Grid;
-                        if (gridConfig != null)
-                        {
-                            // Calculate new column widths for current canvas size
-                            var newColumnWidths = GridCalculationService.CalculateColumnWidths(gridConfig, currentCanvasWidth);
-                            
-                            // Calculate new position and size based on saved grid position
-                            var newX = _gridCalculationService.CalculatePositionForColumn(layout.GridColumn.Value, newColumnWidths);
-                            var newWidth = _gridCalculationService.CalculateWidthForColumnSpan(layout.GridColumnSpan.Value, newColumnWidths);
-                            
-                            System.Diagnostics.Debug.WriteLine($"[GridReposition] {viewModel.Title}: Repositioning from ({viewModel.X:F0}, {viewModel.Width:F0}) to ({newX:F0}, {newWidth:F0}) [Col {layout.GridColumn.Value}, Span {layout.GridColumnSpan.Value}]");
-                            
-                            // Update the ViewModel position and size
-                            System.Diagnostics.Debug.WriteLine($"[GridReposition] {viewModel.Title}: BEFORE update -> ({viewModel.X:F1}, {viewModel.Width:F1})");
-                            viewModel.X = newX;
-                            viewModel.Width = newWidth;
-                            System.Diagnostics.Debug.WriteLine($"[GridReposition] {viewModel.Title}: AFTER update -> ({viewModel.X:F1}, {viewModel.Width:F1})");
-                        }
-                    }
-                    else
-                    {
-                        System.Diagnostics.Debug.WriteLine($"[GridReposition] {viewModel.Title}: No repositioning needed (within tolerance)");
-                    }
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"[GridReposition] Error repositioning {viewModel.Title}: {ex.Message}");
-                    // If repositioning fails, keep the original absolute positioning
-                }
-            }
-            else
-            {
-                System.Diagnostics.Debug.WriteLine($"[GridReposition] {viewModel.Title}: Current mode is not flexible or no TileCanvas reference");
             }
         }
         
@@ -772,6 +707,7 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                 "Chart" => new ChartPaneViewModel(layout.Title, layout.X, layout.Y),
                 "Stats" => new StatsPaneViewModel(layout.Title, layout.X, layout.Y),
                 "Table" => new TablePaneViewModel(layout.Title, layout.X, layout.Y, layout.Width, layout.Height),
+                "Label" => new LabelPaneViewModel(layout.Title, layout.X, layout.Y),
                 _ => null
             };
 
@@ -784,6 +720,8 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                 viewModel.BackgroundColor = layout.BackgroundColor;
                 viewModel.BorderColor = layout.BorderColor;
                 viewModel.BorderThickness = layout.BorderThickness;
+                viewModel.ShowHeader = layout.ShowHeader;
+                viewModel.CanClose = layout.CanClose;
                 
                 // Restore ViewModel-specific data from app data if available
                 if (viewModelData != null && viewModelData.TryGetValue(layout.Id, out var appData))

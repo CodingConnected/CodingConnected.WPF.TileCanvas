@@ -315,6 +315,11 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         public event EventHandler<string>? TitleChanged;
 
+        /// <summary>
+        /// Raised when the panel is selected (clicked)
+        /// </summary>
+        public event EventHandler? PanelSelected;
+
         #endregion
 
         #region Constructor
@@ -331,6 +336,9 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             {
                 PanelId = Guid.NewGuid().ToString();
             }
+
+            // Add panel selection handling
+            PreviewMouseDown += TilePanel_PreviewMouseDown;
 
             UpdateEditModeVisuals();
         }
@@ -668,6 +676,47 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 EndTitleEdit();
                 e.Handled = true;
             }
+        }
+
+        private void TilePanel_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            // Only handle selection on left mouse button
+            if (e.ChangedButton == MouseButton.Left)
+            {
+                // Don't handle selection if we're clicking on interactive elements
+                var originalSource = e.OriginalSource as DependencyObject;
+                if (originalSource != null && 
+                    (IsElementOrChild<Button>(originalSource) || 
+                     IsElementOrChild<TextBox>(originalSource) || 
+                     IsElementOrChild<Thumb>(originalSource)))
+                {
+                    return; // Let the specific control handle the interaction
+                }
+
+                // If we're in edit mode and clicking the title display to edit it, don't trigger selection
+                if (IsEditMode && IsElementOrChild<TextBlock>(originalSource) && 
+                    originalSource.GetValue(FrameworkElement.NameProperty) as string == "PART_TitleDisplay")
+                {
+                    return; // Let title editing handle this
+                }
+
+                // Raise panel selected event
+                PanelSelected?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        private bool IsElementOrChild<T>(DependencyObject element) where T : DependencyObject
+        {
+            if (element is T) return true;
+            
+            var parent = VisualTreeHelper.GetParent(element);
+            while (parent != null && parent != this)
+            {
+                if (parent is T) return true;
+                parent = VisualTreeHelper.GetParent(parent);
+            }
+            
+            return false;
         }
 
         #endregion

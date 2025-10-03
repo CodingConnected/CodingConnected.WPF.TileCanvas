@@ -106,6 +106,10 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         public static readonly DependencyProperty PanelGapProperty =
             DependencyProperty.Register(nameof(PanelGap), typeof(double), typeof(TileCanvas),
                 new PropertyMetadata(0.0, OnPanelGapChanged));
+
+        public static readonly DependencyProperty SelectedPaneIdProperty =
+            DependencyProperty.Register(nameof(SelectedPaneId), typeof(string), typeof(TileCanvas),
+                new PropertyMetadata(string.Empty, OnSelectedPaneIdChanged));
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
         #endregion
@@ -261,6 +265,15 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             set => SetValue(PaneContentTemplateSelectorProperty, value);
         }
 
+        /// <summary>
+        /// ID of the currently selected pane
+        /// </summary>
+        public string SelectedPaneId
+        {
+            get => (string)GetValue(SelectedPaneIdProperty);
+            set => SetValue(SelectedPaneIdProperty, value);
+        }
+
         #endregion
 
         #region Events
@@ -289,6 +302,11 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// Raised when the layout changes
         /// </summary>
         public event EventHandler<LayoutEventArgs>? LayoutChanged;
+
+        /// <summary>
+        /// Raised when a panel is selected
+        /// </summary>
+        public event EventHandler<PanelEventArgs>? PanelSelected;
 
         #endregion
 
@@ -603,6 +621,34 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         public Size SnapSizeToGrid(Size size)
         {
             return _gridService.SnapSizeToGrid(size, Configuration.Grid, GetAvailableContentWidth());
+        }
+
+        /// <summary>
+        /// Selects the panel with the specified ID
+        /// </summary>
+        /// <param name="panelId">ID of the panel to select</param>
+        public void SelectPanel(string panelId)
+        {
+            if (string.IsNullOrEmpty(panelId))
+            {
+                // Clear selection
+                SelectedPaneId = string.Empty;
+                return;
+            }
+
+            // Find the panel
+            var panel = Panels.FirstOrDefault(p => p.PanelId == panelId);
+            if (panel != null)
+            {
+                // Update the selected pane ID
+                SelectedPaneId = panelId;
+                
+                // Update all ViewModels' IsSelected property
+                UpdateAllViewModelsSelection();
+                
+                var panelLayout = panel.GetLayout();
+                OnPanelSelected(new PanelEventArgs(panelLayout));
+            }
         }
 
         /// <summary>
@@ -1115,6 +1161,18 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                             }
                         }
                         break;
+                    case nameof(IPaneViewModel.IsSelected):
+                        if (viewModel.IsSelected)
+                        {
+                            // Update SelectedPaneId when a ViewModel is selected
+                            SelectedPaneId = viewModel.Id;
+                        }
+                        else if (SelectedPaneId == viewModel.Id)
+                        {
+                            // Clear selection if this was the selected ViewModel
+                            SelectedPaneId = string.Empty;
+                        }
+                        break;
                 }
             }
         }
@@ -1199,6 +1257,14 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             }
         }
 
+        private static void OnSelectedPaneIdChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is TileCanvas canvas)
+            {
+                canvas.UpdatePanelSelection((string)e.NewValue);
+            }
+        }
+
         private void LoadLayout(IEnumerable<PanelLayout> layouts)
         {
             ClearPanels();
@@ -1222,6 +1288,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             panel.CloseRequested += Panel_CloseRequested;
             panel.ColorChanged += Panel_ColorChanged;
             panel.TitleChanged += Panel_TitleChanged;
+            panel.PanelSelected += Panel_PanelSelected;
         }
 
         private void CleanupPanelEvents(TilePanel panel)
@@ -1231,6 +1298,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             panel.CloseRequested -= Panel_CloseRequested;
             panel.ColorChanged -= Panel_ColorChanged;
             panel.TitleChanged -= Panel_TitleChanged;
+            panel.PanelSelected -= Panel_PanelSelected;
         }
 
         private void Panel_DragStarted(object? sender, MouseButtonEventArgs e)
@@ -1334,6 +1402,14 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             }
         }
 
+        private void Panel_PanelSelected(object? sender, EventArgs e)
+        {
+            if (sender is TilePanel panel)
+            {
+                SelectPanel(panel.PanelId);
+            }
+        }
+
         private void UpdateAllPanelsEditMode()
         {
             foreach (var panel in Panels)
@@ -1362,6 +1438,46 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             foreach (var panel in Panels)
             {
                 panel.PanelMargin = gap;
+            }
+        }
+
+        /// <summary>
+        /// Updates panel selection based on SelectedPaneId property change
+        /// </summary>
+        private void UpdatePanelSelection(string selectedPaneId)
+        {
+            UpdateAllViewModelsSelection();
+            
+            // Raise event if a panel is selected
+            if (!string.IsNullOrEmpty(selectedPaneId))
+            {
+                var panel = Panels.FirstOrDefault(p => p.PanelId == selectedPaneId);
+                if (panel != null)
+                {
+                    var panelLayout = panel.GetLayout();
+                    OnPanelSelected(new PanelEventArgs(panelLayout));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Updates IsSelected property for all ViewModels based on current SelectedPaneId
+        /// </summary>
+        private void UpdateAllViewModelsSelection()
+        {
+            foreach (var kvp in _viewModelToPanelMap)
+            {
+                var viewModel = kvp.Key;
+                var panel = kvp.Value;
+                
+                // Temporarily unsubscribe to avoid circular updates
+                viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+                
+                // Update IsSelected based on whether this panel is the selected one
+                viewModel.IsSelected = panel.PanelId == SelectedPaneId;
+                
+                // Re-subscribe
+                viewModel.PropertyChanged += ViewModel_PropertyChanged;
             }
         }
 
@@ -1492,6 +1608,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         protected virtual void OnPanelRemoved(PanelEventArgs e) => PanelRemoved?.Invoke(this, e);
         protected virtual void OnPanelMoved(PanelEventArgs e) => PanelMoved?.Invoke(this, e);
         protected virtual void OnPanelResized(PanelEventArgs e) => PanelResized?.Invoke(this, e);
+        protected virtual void OnPanelSelected(PanelEventArgs e) => PanelSelected?.Invoke(this, e);
         protected virtual void OnLayoutChanged(LayoutChangeType changeType, PanelLayout[] panels) =>
             LayoutChanged?.Invoke(this, new LayoutEventArgs(changeType, panels));
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member

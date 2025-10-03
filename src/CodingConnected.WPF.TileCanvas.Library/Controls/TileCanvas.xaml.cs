@@ -346,7 +346,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             // Apply grid snapping if enabled (for both modes)
             if (SnapToGridOnDrag)
             {
-                finalPosition = _gridService.SnapToGrid(finalPosition, Configuration.Grid, GetAvailableContentWidth());
+                finalPosition = _gridService.SnapToGrid(finalPosition, Configuration.Grid, GetCanvasWidth());
             }
 
             // Apply constraints for flexible mode
@@ -523,30 +523,6 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         }
 
         /// <summary>
-        /// Gets the available width for content (accounting for vertical scrollbar in flexible mode)
-        /// </summary>
-        private double GetAvailableContentWidth()
-        {
-            if (GridMode != GridMode.Flexible)
-            {
-                return ActualWidth;
-            }
-
-            // In flexible mode, we need to account for vertical scrollbar
-            var availableWidth = ActualWidth;
-            var scrollBarWidth = SystemParameters.VerticalScrollBarWidth;
-
-            // Assume vertical scrollbar is present if content might exceed viewport
-            // This is a conservative approach to ensure consistent layout
-            if (Panels.Any())
-            {
-                availableWidth -= scrollBarWidth;
-            }
-
-            return Math.Max(Configuration.Grid.ColumnCount * Configuration.Grid.MinColumnWidth, availableWidth);
-        }
-
-        /// <summary>
         /// Gets dynamic canvas width based on panel positions (for fixed mode)
         /// </summary>
         private double GetDynamicCanvasWidth()
@@ -594,7 +570,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             }
 
             // In flexible mode, calculate the actual canvas width based on current available space
-            var availableWidth = GetAvailableContentWidth();
+            var availableWidth = GetCanvasWidth();
             var columnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, availableWidth);
             var actualCanvasWidth = columnWidths.Sum();
 
@@ -612,7 +588,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         public Point SnapToGrid(Point position)
         {
-            return _gridService.SnapToGrid(position, Configuration.Grid, GetAvailableContentWidth());
+            return _gridService.SnapToGrid(position, Configuration.Grid, GetCanvasWidth());
         }
 
         /// <summary>
@@ -620,7 +596,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         /// </summary>
         public Size SnapSizeToGrid(Size size)
         {
-            return _gridService.SnapSizeToGrid(size, Configuration.Grid, GetAvailableContentWidth());
+            return _gridService.SnapSizeToGrid(size, Configuration.Grid, GetCanvasWidth());
         }
 
         /// <summary>
@@ -743,7 +719,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 // Calculate old and new available widths for content
                 var oldAvailableWidth = Math.Max(e.PreviousSize.Width - SystemParameters.VerticalScrollBarWidth,
                                                 Configuration.Grid.ColumnCount * Configuration.Grid.MinColumnWidth);
-                var newAvailableWidth = GetAvailableContentWidth();
+                var newAvailableWidth = GetCanvasWidth();
 
                 // Only update if there's a meaningful size change
                 if (Math.Abs(oldAvailableWidth - newAvailableWidth) > 1)
@@ -784,7 +760,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 // Apply snapping if enabled
                 if (SnapToGridOnDrag)
                 {
-                    var snappedPosition = _gridService.SnapToGrid(new Point(newLeft, newTop), Configuration.Grid, GetAvailableContentWidth());
+                    var snappedPosition = _gridService.SnapToGrid(new Point(newLeft, newTop), Configuration.Grid, GetCanvasWidth());
                     Canvas.SetLeft(_draggedElement, snappedPosition.X);
                     Canvas.SetTop(_draggedElement, snappedPosition.Y);
                 }
@@ -1518,7 +1494,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             if (GridMode != GridMode.Flexible || oldColumnWidths == null)
                 return;
 
-            var newColumnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, GetAvailableContentWidth());
+            var newColumnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, GetCanvasWidth());
 
             foreach (var panel in Panels)
             {
@@ -1548,7 +1524,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
             if (!ShowGrid) return;
 
-            var width = Math.Max(GetAvailableContentWidth(), MinCanvasWidth);
+            var width = Math.Max(GetCanvasWidth(), MinCanvasWidth);
             var height = Math.Max(ActualHeight, MinCanvasHeight);
 
             if (GridMode == GridMode.Fixed)

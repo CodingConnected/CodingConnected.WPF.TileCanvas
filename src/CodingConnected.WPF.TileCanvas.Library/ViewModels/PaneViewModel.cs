@@ -11,7 +11,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.ViewModels
         /// <summary>
         /// Unique identifier for the pane
         /// </summary>
-        public string Id { get; }
+        public string Id { get; set; }
 
         /// <summary>
         /// Display title of the pane

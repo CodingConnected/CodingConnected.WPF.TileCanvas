@@ -369,9 +369,7 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                     if (TileCanvas != null)
                     { 
                         TileCanvas.UpdateCanvasSize();
-                        var getsVerticalScrollBar = panes.Any(x => (x.Y + x.Height) + 50 > TileCanvas.ActualHeight);
                         var currentWidth = TileCanvas?.GetCanvasWidth() ?? 0;
-                        if (currentWidth > 0 && getsVerticalScrollBar) currentWidth -= SystemParameters.VerticalScrollBarWidth;
                         if (currentWidth > 0 && appSettings.CanvasWidth > 0)
                         {
                             proportion = currentWidth / appSettings.CanvasWidth;

@@ -76,5 +76,25 @@ namespace CodingConnected.WPF.TileCanvas.Library.ViewModels
         /// Whether the pane is currently selected
         /// </summary>
         bool IsSelected { get; set; }
+        
+        /// <summary>
+        /// Starting column index in flexible grid mode (0-based)
+        /// </summary>
+        int GridColumn { get; set; }
+        
+        /// <summary>
+        /// Number of columns this panel spans in flexible grid mode
+        /// </summary>
+        int GridColumnSpan { get; set; }
+        
+        /// <summary>
+        /// Starting row index in flexible grid mode (0-based)
+        /// </summary>
+        int GridRow { get; set; }
+        
+        /// <summary>
+        /// Number of rows this panel spans in flexible grid mode
+        /// </summary>
+        int GridRowSpan { get; set; }
     }
 }

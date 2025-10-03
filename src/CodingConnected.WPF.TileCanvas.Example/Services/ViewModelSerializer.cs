@@ -66,7 +66,7 @@ namespace CodingConnected.WPF.TileCanvas.Example.Services
             if (saveData == null)
                 return (new List<IPaneViewModel>(), new AppSettings());
 
-            var panes = saveData.Panes.Select(ConvertFromSerializablePane).Where(p => p != null).ToList()!;
+            var panes = saveData.Panes.Select(ConvertFromSerializablePane).Where(p => p != null).Cast<IPaneViewModel>().ToList();
             return (panes, saveData.AppSettings ?? new AppSettings());
         }
 
@@ -92,6 +92,12 @@ namespace CodingConnected.WPF.TileCanvas.Example.Services
                 CanClose = pane.CanClose,
                 IsSelected = pane.IsSelected,
                 PaneType = pane.PaneType,
+                
+                // Grid coordinates for flexible mode
+                GridColumn = pane.GridColumn,
+                GridColumnSpan = pane.GridColumnSpan,
+                GridRow = pane.GridRow,
+                GridRowSpan = pane.GridRowSpan,
 
                 // Type-specific properties
                 TypeSpecificData = SerializeTypeSpecificData(pane)
@@ -126,6 +132,12 @@ namespace CodingConnected.WPF.TileCanvas.Example.Services
                 viewModel.ShowHeader = serializablePane.ShowHeader;
                 viewModel.CanClose = serializablePane.CanClose;
                 viewModel.IsSelected = serializablePane.IsSelected;
+                
+                // Restore grid coordinates for flexible mode
+                viewModel.GridColumn = serializablePane.GridColumn;
+                viewModel.GridColumnSpan = serializablePane.GridColumnSpan;
+                viewModel.GridRow = serializablePane.GridRow;
+                viewModel.GridRowSpan = serializablePane.GridRowSpan;
 
                 // Restore type-specific data
                 RestoreTypeSpecificData(viewModel, serializablePane.TypeSpecificData);
@@ -319,6 +331,12 @@ namespace CodingConnected.WPF.TileCanvas.Example.Services
         public bool CanClose { get; set; }
         public bool IsSelected { get; set; }
         public string PaneType { get; set; } = "";
+        
+        // Grid coordinates for flexible mode
+        public int GridColumn { get; set; }
+        public int GridColumnSpan { get; set; } = 1;
+        public int GridRow { get; set; }
+        public int GridRowSpan { get; set; } = 1;
 
         // Type-specific data as JSON
         public JsonElement? TypeSpecificData { get; set; }

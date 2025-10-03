@@ -342,21 +342,43 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             ArgumentNullException.ThrowIfNull(panel);
 
             Point finalPosition = new(x, y);
-
-            // Apply grid snapping if enabled (for both modes)
-            if (SnapToGridOnDrag)
+            
+            // In flexible mode with valid grid coordinates, use those instead of X/Y
+            if (GridMode == GridMode.Flexible && panel.GridColumnSpan > 0)
             {
-                finalPosition = _gridService.SnapToGrid(finalPosition, Configuration.Grid, GetCanvasWidth());
+                var columnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, GetCanvasWidth());
+                finalPosition.X = GridCalculationService.CalculatePositionForColumn(panel.GridColumn, columnWidths, PanelGap);
+                finalPosition.Y = panel.GridRow * Configuration.Grid.GridSize;
+                panel.Width = GridCalculationService.CalculateWidthForColumnSpan(panel.GridColumnSpan, columnWidths, PanelGap);
+                panel.Height = panel.GridRowSpan * Configuration.Grid.GridSize;
             }
-
-            // Apply constraints for flexible mode
-            if (GridMode == GridMode.Flexible)
+            else
             {
-                var maxPosition = GetMaxAllowedPosition(panel);
-                finalPosition = new Point(
-                    Math.Max(0, Math.Min(finalPosition.X, maxPosition.X)),
-                    Math.Max(0, finalPosition.Y)
-                );
+                // Apply grid snapping if enabled (for both modes)
+                if (SnapToGridOnDrag)
+                {
+                    finalPosition = _gridService.SnapToGrid(finalPosition, Configuration.Grid, GetCanvasWidth());
+                }
+
+                // Apply constraints for flexible mode
+                if (GridMode == GridMode.Flexible)
+                {
+                    var maxPosition = GetMaxAllowedPosition(panel);
+                    finalPosition = new Point(
+                        Math.Max(0, Math.Min(finalPosition.X, maxPosition.X)),
+                        Math.Max(0, finalPosition.Y)
+                    );
+                }
+                
+                // Calculate grid coordinates from pixel positions
+                if (GridMode == GridMode.Flexible)
+                {
+                    var columnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, GetCanvasWidth());
+                    panel.GridColumn = GridCalculationService.CalculateStartColumn(finalPosition.X, columnWidths, PanelGap);
+                    panel.GridColumnSpan = Math.Max(1, GridCalculationService.CalculateColumnSpan(panel.Width, columnWidths, PanelGap));
+                    panel.GridRow = (int)Math.Round(finalPosition.Y / Configuration.Grid.GridSize);
+                    panel.GridRowSpan = Math.Max(1, (int)Math.Round(panel.Height / Configuration.Grid.GridSize));
+                }
             }
 
             Canvas.SetLeft(panel, finalPosition.X);
@@ -981,6 +1003,10 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 Height = viewModel.Height,
                 PanelType = viewModel.PaneType,
                 HeaderVisibility = viewModel.ShowHeader ? Visibility.Visible : Visibility.Collapsed,
+                GridColumn = viewModel.GridColumn,
+                GridColumnSpan = viewModel.GridColumnSpan,
+                GridRow = viewModel.GridRow,
+                GridRowSpan = viewModel.GridRowSpan
             };
 
             // Set header color
@@ -1080,6 +1106,16 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 viewModel.Width = panel.Width;
                 viewModel.Height = panel.Height;
                 
+                // In flexible mode, also update grid coordinates
+                if (GridMode == GridMode.Flexible)
+                {
+                    var columnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, GetCanvasWidth());
+                    viewModel.GridColumnSpan = GridCalculationService.CalculateColumnSpan(panel.Width, columnWidths, PanelGap);
+                    viewModel.GridRowSpan = (int)Math.Round(panel.Height / Configuration.Grid.GridSize);
+                    panel.GridColumnSpan = viewModel.GridColumnSpan;
+                    panel.GridRowSpan = viewModel.GridRowSpan;
+                }
+                
                 // Re-subscribe
                 viewModel.PropertyChanged += ViewModel_PropertyChanged;
             }
@@ -1106,6 +1142,16 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                     // Update ViewModel position
                     viewModel.X = left;
                     viewModel.Y = top;
+                    
+                    // In flexible mode, also update grid coordinates
+                    if (GridMode == GridMode.Flexible)
+                    {
+                        var columnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, GetCanvasWidth());
+                        viewModel.GridColumn = GridCalculationService.CalculateStartColumn(left, columnWidths, PanelGap);
+                        viewModel.GridRow = (int)Math.Round(top / Configuration.Grid.GridSize);
+                        panel.GridColumn = viewModel.GridColumn;
+                        panel.GridRow = viewModel.GridRow;
+                    }
                     
                     // Re-subscribe
                     viewModel.PropertyChanged += ViewModel_PropertyChanged;
@@ -1163,6 +1209,40 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                         {
                             // Clear selection if this was the selected ViewModel
                             SelectedPaneId = string.Empty;
+                        }
+                        break;
+                    case nameof(IPaneViewModel.GridColumn):
+                        panel.GridColumn = viewModel.GridColumn;
+                        if (GridMode == GridMode.Flexible)
+                        {
+                            var columnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, GetCanvasWidth());
+                            var newLeft = GridCalculationService.CalculatePositionForColumn(viewModel.GridColumn, columnWidths, PanelGap);
+                            Canvas.SetLeft(panel, newLeft);
+                            UpdateCanvasSize();
+                        }
+                        break;
+                    case nameof(IPaneViewModel.GridColumnSpan):
+                        panel.GridColumnSpan = viewModel.GridColumnSpan;
+                        if (GridMode == GridMode.Flexible)
+                        {
+                            var columnWidths = GridCalculationService.CalculateColumnWidths(Configuration.Grid, GetCanvasWidth());
+                            panel.Width = GridCalculationService.CalculateWidthForColumnSpan(viewModel.GridColumnSpan, columnWidths, PanelGap);
+                        }
+                        break;
+                    case nameof(IPaneViewModel.GridRow):
+                        panel.GridRow = viewModel.GridRow;
+                        if (GridMode == GridMode.Flexible)
+                        {
+                            var newTop = viewModel.GridRow * Configuration.Grid.GridSize;
+                            Canvas.SetTop(panel, newTop);
+                            UpdateCanvasSize();
+                        }
+                        break;
+                    case nameof(IPaneViewModel.GridRowSpan):
+                        panel.GridRowSpan = viewModel.GridRowSpan;
+                        if (GridMode == GridMode.Flexible)
+                        {
+                            panel.Height = viewModel.GridRowSpan * Configuration.Grid.GridSize;
                         }
                         break;
                 }
@@ -1498,21 +1578,35 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
 
             foreach (var panel in Panels)
             {
-                var currentLeft = Canvas.GetLeft(panel);
-                if (double.IsNaN(currentLeft)) currentLeft = 0;
-
-                // Calculate the panel's relative position in the old grid
-                var startColumn = _gridService.CalculateStartColumn(currentLeft, oldColumnWidths);
-                var columnSpan = _gridService.CalculateColumnSpan(panel.ActualWidth, oldColumnWidths);
-
-                // Apply the same relative position to the new grid
-                // Note: This always repositions based on column layout, regardless of snap settings
-                // Snap settings only affect user drag/resize interactions, not automatic layout adjustments
-                var newLeft = _gridService.CalculatePositionForColumn(startColumn, newColumnWidths);
-                var newWidth = _gridService.CalculateWidthForColumnSpan(columnSpan, newColumnWidths);
+                // Use stored grid coordinates instead of calculating from pixel positions
+                var gridColumn = panel.GridColumn;
+                var gridColumnSpan = panel.GridColumnSpan;
+                var gridRow = panel.GridRow;
+                var gridRowSpan = panel.GridRowSpan;
+                
+                // Calculate new pixel position from grid coordinates
+                var newLeft = GridCalculationService.CalculatePositionForColumn(gridColumn, newColumnWidths, PanelGap);
+                var newWidth = GridCalculationService.CalculateWidthForColumnSpan(gridColumnSpan, newColumnWidths, PanelGap);
+                var newTop = gridRow * Configuration.Grid.GridSize;
+                var newHeight = gridRowSpan * Configuration.Grid.GridSize;
 
                 Canvas.SetLeft(panel, newLeft);
+                Canvas.SetTop(panel, newTop);
                 panel.Width = newWidth;
+                panel.Height = newHeight;
+                
+                // Update corresponding ViewModel if it exists
+                var viewModelEntry = _viewModelToPanelMap.FirstOrDefault(kvp => kvp.Value == panel);
+                if (viewModelEntry.Key != null)
+                {
+                    var viewModel = viewModelEntry.Key;
+                    viewModel.PropertyChanged -= ViewModel_PropertyChanged;
+                    viewModel.X = newLeft;
+                    viewModel.Y = newTop;
+                    viewModel.Width = newWidth;
+                    viewModel.Height = newHeight;
+                    viewModel.PropertyChanged += ViewModel_PropertyChanged;
+                }
             }
         }
 

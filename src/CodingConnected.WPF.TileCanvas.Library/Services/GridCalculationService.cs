@@ -94,9 +94,6 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
         {
             if (columnWidths.Length == 0) return 1;
             
-            // Account for panel margins - the effective width for grid calculations
-            double effectiveWidth = width + (panelMargin * 2); // margin on both sides
-            
             int bestSpan = 1;
             double bestDifference = double.MaxValue;
             
@@ -109,7 +106,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
                     spanWidth += columnWidths[i];
                 }
                 
-                double difference = Math.Abs(effectiveWidth - spanWidth);
+                double difference = Math.Abs(width - spanWidth);
                 
                 // Allow for reasonable tolerance (5% of average column width or minimum 10px)
                 double avgColumnWidth = columnWidths.Average();
@@ -153,8 +150,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
                 width += columnWidths[i];
             }
 
-            // Subtract margins from both sides
-            return Math.Max(0, width - (panelMargin * 2));
+            return width;
         }
 
         /// <summary>
@@ -171,28 +167,21 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
         public static int CalculateStartColumn(double xPosition, double[] columnWidths, double panelMargin)
         {
             if (columnWidths.Length == 0) return 0;
-            
-            // Account for panel margin - the effective position for grid calculations
-            double effectiveX = xPosition + panelMargin;
-            
-            if (effectiveX <= 0) return 0;
+            if (xPosition <= 0) return 0;
             
             double currentX = 0;
             double avgColumnWidth = columnWidths.Average();
-            double tolerance = Math.Max(5, avgColumnWidth * 0.02); // 2% tolerance or minimum 5px
+            double tolerance = Math.Max(5, avgColumnWidth * 0.02);
 
             for (int i = 0; i < columnWidths.Length; i++)
             {
                 double columnEnd = currentX + columnWidths[i];
                 
-                // Check if position is within this column (with tolerance)
-                if (effectiveX >= currentX - tolerance && effectiveX <= columnEnd + tolerance)
+                if (xPosition >= currentX - tolerance && xPosition <= columnEnd + tolerance)
                 {
-                    // Decide which column boundary is closer
-                    double distToStart = Math.Abs(effectiveX - currentX);
-                    double distToEnd = Math.Abs(effectiveX - columnEnd);
+                    double distToStart = Math.Abs(xPosition - currentX);
+                    double distToEnd = Math.Abs(xPosition - columnEnd);
                     
-                    // If closer to end of column and not the last column, use next column
                     if (distToEnd < distToStart && i < columnWidths.Length - 1)
                     {
                         return i + 1;
@@ -219,7 +208,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
         /// </summary>
         public static double CalculatePositionForColumn(int columnIndex, double[] columnWidths, double panelMargin)
         {
-            if (columnIndex <= 0) return Math.Max(0, -panelMargin);
+            if (columnIndex <= 0) return 0;
 
             double position = 0;
             for (int i = 0; i < Math.Min(columnIndex, columnWidths.Length); i++)
@@ -227,8 +216,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Services
                 position += columnWidths[i];
             }
 
-            // Subtract the margin to account for the panel's margin
-            return Math.Max(0, position - panelMargin);
+            return position;
         }
 
         private static Point SnapToFixedGrid(Point position, int gridSize)

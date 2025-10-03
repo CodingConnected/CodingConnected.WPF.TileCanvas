@@ -94,13 +94,13 @@ namespace CodingConnected.WPF.TileCanvas.Library.Models
         public int? GridColumnSpan { get; set; }
         
         /// <summary>
-        /// Canvas width when this layout was saved (for flexible grid repositioning)
+        /// Starting row index in flexible grid mode (0-based)
         /// </summary>
-        public double? CanvasWidth { get; set; }
+        public int? GridRow { get; set; }
         
         /// <summary>
-        /// Column count setting when this layout was saved (for flexible grid repositioning)
+        /// Number of rows this panel spans in flexible grid mode
         /// </summary>
-        public int? ColumnCount { get; set; }
+        public int? GridRowSpan { get; set; }
     }
 }

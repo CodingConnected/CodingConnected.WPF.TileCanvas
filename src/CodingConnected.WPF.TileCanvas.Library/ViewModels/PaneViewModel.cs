@@ -84,6 +84,30 @@ namespace CodingConnected.WPF.TileCanvas.Library.ViewModels
         /// </summary>
         [ObservableProperty]
         private bool _isSelected;
+        
+        /// <summary>
+        /// Starting column index in flexible grid mode (0-based)
+        /// </summary>
+        [ObservableProperty]
+        private int _gridColumn;
+        
+        /// <summary>
+        /// Number of columns this panel spans in flexible grid mode
+        /// </summary>
+        [ObservableProperty]
+        private int _gridColumnSpan = 1;
+        
+        /// <summary>
+        /// Starting row index in flexible grid mode (0-based)
+        /// </summary>
+        [ObservableProperty]
+        private int _gridRow;
+        
+        /// <summary>
+        /// Number of rows this panel spans in flexible grid mode
+        /// </summary>
+        [ObservableProperty]
+        private int _gridRowSpan = 1;
 
         /// <summary>
         /// Type identifier for the pane (used for template selection)

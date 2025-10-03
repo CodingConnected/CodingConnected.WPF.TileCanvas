@@ -6,7 +6,7 @@
         <ControlTemplate TargetType="{x:Type UserControl}">
             <ScrollViewer x:Name="PART_ScrollViewer"
                          HorizontalScrollBarVisibility="Auto"
-                         VerticalScrollBarVisibility="Auto"
+                         VerticalScrollBarVisibility="Visible"
                          HorizontalContentAlignment="Left"
                          VerticalContentAlignment="Top">
                 <Grid>

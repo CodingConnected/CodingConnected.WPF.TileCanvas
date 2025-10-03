@@ -127,6 +127,22 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         public static readonly DependencyProperty IsEditingTitleProperty =
             DependencyProperty.Register(nameof(IsEditingTitle), typeof(bool), typeof(TilePanel),
                 new PropertyMetadata(false, OnIsEditingTitleChanged));
+        
+        public static readonly DependencyProperty GridColumnProperty =
+            DependencyProperty.Register(nameof(GridColumn), typeof(int), typeof(TilePanel),
+                new PropertyMetadata(0));
+        
+        public static readonly DependencyProperty GridColumnSpanProperty =
+            DependencyProperty.Register(nameof(GridColumnSpan), typeof(int), typeof(TilePanel),
+                new PropertyMetadata(1));
+        
+        public static readonly DependencyProperty GridRowProperty =
+            DependencyProperty.Register(nameof(GridRow), typeof(int), typeof(TilePanel),
+                new PropertyMetadata(0));
+        
+        public static readonly DependencyProperty GridRowSpanProperty =
+            DependencyProperty.Register(nameof(GridRowSpan), typeof(int), typeof(TilePanel),
+                new PropertyMetadata(1));
 #pragma warning restore CS1591 // Missing XML comment for publicly visible type or member
 
         #endregion
@@ -285,6 +301,42 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             get => (bool)GetValue(IsEditingTitleProperty);
             set => SetValue(IsEditingTitleProperty, value);
         }
+        
+        /// <summary>
+        /// Starting column index in flexible grid mode (0-based)
+        /// </summary>
+        public int GridColumn
+        {
+            get => (int)GetValue(GridColumnProperty);
+            set => SetValue(GridColumnProperty, value);
+        }
+        
+        /// <summary>
+        /// Number of columns this panel spans in flexible grid mode
+        /// </summary>
+        public int GridColumnSpan
+        {
+            get => (int)GetValue(GridColumnSpanProperty);
+            set => SetValue(GridColumnSpanProperty, value);
+        }
+        
+        /// <summary>
+        /// Starting row index in flexible grid mode (0-based)
+        /// </summary>
+        public int GridRow
+        {
+            get => (int)GetValue(GridRowProperty);
+            set => SetValue(GridRowProperty, value);
+        }
+        
+        /// <summary>
+        /// Number of rows this panel spans in flexible grid mode
+        /// </summary>
+        public int GridRowSpan
+        {
+            get => (int)GetValue(GridRowSpanProperty);
+            set => SetValue(GridRowSpanProperty, value);
+        }
 
         #endregion
 
@@ -358,7 +410,11 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 Title = layout.Title,
                 Width = layout.Width,
                 Height = layout.Height,
-                PanelType = layout.PanelType ?? string.Empty
+                PanelType = layout.PanelType ?? string.Empty,
+                GridColumn = layout.GridColumn ?? 0,
+                GridColumnSpan = layout.GridColumnSpan ?? 1,
+                GridRow = layout.GridRow ?? 0,
+                GridRowSpan = layout.GridRowSpan ?? 1
             };
 
             // Set header color
@@ -423,7 +479,11 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 Width = ActualWidth > 0 ? ActualWidth : Width,
                 Height = ActualHeight > 0 ? ActualHeight : Height,
                 HeaderColor = HeaderBrush is SolidColorBrush solidBrush ? solidBrush.Color.ToString() : "#FF87CEEB",
-                PanelType = PanelType
+                PanelType = PanelType,
+                GridColumn = GridColumn,
+                GridColumnSpan = GridColumnSpan,
+                GridRow = GridRow,
+                GridRowSpan = GridRowSpan
             };
         }
 

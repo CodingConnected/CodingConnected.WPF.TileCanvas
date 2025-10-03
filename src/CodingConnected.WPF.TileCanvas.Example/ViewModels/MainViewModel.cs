@@ -310,7 +310,8 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
                         MinColumnWidth = MinColumnWidth,
                         IsEditMode = IsEditMode,
                         PanelSpacing = PanelSpacing,
-                        PanelGap = PanelGap
+                        PanelGap = PanelGap,
+                        CanvasWidth = TileCanvas?.GetCanvasWidth() ?? 0
                     };
 
                     // Save everything in a single file using ViewModels
@@ -362,8 +363,27 @@ namespace CodingConnected.WPF.TileCanvas.Example.ViewModels
 
                     // Replace the panes collection
                     Panes.Clear();
+
+                    // Determine proportion between previous and current canvas width
+                    var proportion = 1.0;
+                    if (TileCanvas != null)
+                    { 
+                        TileCanvas.UpdateCanvasSize();
+                        var getsVerticalScrollBar = panes.Any(x => (x.Y + x.Height) + 50 > TileCanvas.ActualHeight);
+                        var currentWidth = TileCanvas?.GetCanvasWidth() ?? 0;
+                        if (currentWidth > 0 && getsVerticalScrollBar) currentWidth -= SystemParameters.VerticalScrollBarWidth;
+                        if (currentWidth > 0 && appSettings.CanvasWidth > 0)
+                        {
+                            proportion = currentWidth / appSettings.CanvasWidth;
+                        }
+                    }
+
                     foreach (var pane in panes)
                     {
+                        // Take care of resized cavnas
+                        pane.X = pane.X * proportion;
+                        pane.Width = pane.Width * proportion;
+
                         Panes.Add(pane);
                     }
 

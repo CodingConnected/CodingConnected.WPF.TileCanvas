@@ -41,7 +41,7 @@ namespace CodingConnected.WPF.TileCanvas.Example.Services
             var saveData = new AppSaveData
             {
                 AppSettings = appSettings,
-                Panes = panes.Select(ConvertToSerializablePane).ToList(),
+                Panes = [.. panes.Select(ConvertToSerializablePane)],
                 SavedAt = DateTime.Now,
                 AppVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString()
             };
@@ -296,6 +296,7 @@ namespace CodingConnected.WPF.TileCanvas.Example.Services
         public bool IsEditMode { get; set; } = true;
         public double PanelSpacing { get; set; } = 5;
         public double PanelGap { get; set; } = 2;
+        public double CanvasWidth { get; set; }
     }
 
     /// <summary>

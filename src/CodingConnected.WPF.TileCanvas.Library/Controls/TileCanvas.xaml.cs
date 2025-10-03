@@ -624,6 +624,16 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
         }
 
         /// <summary>
+        /// Retrieve canvas width
+        /// </summary>
+        /// <returns>Canvas width</returns>
+        public double GetCanvasWidth()
+        {
+            _panelCanvas = GetTemplateChild("PART_PanelCanvas") as Canvas;
+            return _panelCanvas?.ActualWidth ?? 0;
+        }
+
+        /// <summary>
         /// Selects the panel with the specified ID
         /// </summary>
         /// <param name="panelId">ID of the panel to select</param>

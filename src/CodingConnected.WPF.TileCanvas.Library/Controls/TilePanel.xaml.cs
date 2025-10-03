@@ -368,32 +368,32 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
             }
 
             // Set content if available
-            if (layout.ContentData != null)
-            {
-                if (layout.ContentData is string text)
-                {
-                    panel.Content = new TextBlock
-                    {
-                        Text = text,
-                        TextWrapping = TextWrapping.Wrap,
-                        Foreground = Brushes.DarkGray
-                    };
-                }
-                else
-                {
-                    panel.Content = layout.ContentData;
-                }
-            }
-            else
-            {
-                // Default content
-                panel.Content = new TextBlock
-                {
-                    Text = $"Content for {layout.Title}\n\nThis is a tile panel.",
-                    TextWrapping = TextWrapping.Wrap,
-                    Foreground = Brushes.DarkGray
-                };
-            }
+            //if (layout.ContentData != null)
+            //{
+            //    if (layout.ContentData is string text)
+            //    {
+            //        panel.Content = new TextBlock
+            //        {
+            //            Text = text,
+            //            TextWrapping = TextWrapping.Wrap,
+            //            Foreground = Brushes.DarkGray
+            //        };
+            //    }
+            //    else
+            //    {
+            //        panel.Content = layout.ContentData;
+            //    }
+            //}
+            //else
+            //{
+            //    // Default content
+            //    panel.Content = new TextBlock
+            //    {
+            //        Text = $"Content for {layout.Title}\n\nThis is a tile panel.",
+            //        TextWrapping = TextWrapping.Wrap,
+            //        Foreground = Brushes.DarkGray
+            //    };
+            //}
 
             return panel;
         }
@@ -415,8 +415,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 Width = ActualWidth > 0 ? ActualWidth : Width,
                 Height = ActualHeight > 0 ? ActualHeight : Height,
                 HeaderColor = HeaderBrush is SolidColorBrush solidBrush ? solidBrush.Color.ToString() : "#FF87CEEB",
-                PanelType = PanelType,
-                ContentData = GetContentData()
+                PanelType = PanelType
             };
         }
 

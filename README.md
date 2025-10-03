@@ -10,7 +10,7 @@ A flexible, responsive tile canvas system for WPF applications with drag-and-dro
 - **Resizable Panels**: Panels can be resized with mouse interaction
 - **Grid System**: Two grid modes - Fixed and Flexible responsive layouts
 - **MVVM Support**: Full data binding support with `IPaneViewModel` interface
-- **Layout Persistence**: Save and load layouts to/from JSON files
+- **Layout Persistence**: Save and load layouts with library-level or simplified ViewModel-only serialization
 - **Edit Mode**: Toggle between edit and view modes
 - **Grid Snapping**: Optional snapping to grid during drag/resize operations
 - **Customizable**: Configurable grid spacing, panel margins, and visual styling
@@ -114,6 +114,8 @@ tileCanvas.ClearPanels();
 ```
 
 ### Layout Persistence
+
+**Library-Level Serialization** (Basic panel layout data):
 ```csharp
 // Save layout to file
 await tileCanvas.SaveLayoutAsync("layout.json");
@@ -128,6 +130,21 @@ string layoutData = tileCanvas.SerializeLayout();
 tileCanvas.DeserializeLayout(layoutData);
 ```
 
+**Application-Level Serialization** (Complete app state via ViewModels):
+```csharp
+// For applications using MVVM with IPaneViewModel collections
+// This approach saves complete application state in a single file
+
+var serializer = new ViewModelSerializer();
+var appSettings = new AppSettings { /* your app configuration */ };
+
+// Save complete app state (ViewModels + settings)
+await serializer.SaveAsync(viewModels, appSettings, "myapp-layout.json");
+
+// Load complete app state
+var (loadedViewModels, loadedSettings) = await serializer.LoadAsync("myapp-layout.json");
+```
+
 ### Grid Operations
 ```csharp
 // Snap all panels to grid
@@ -139,6 +156,67 @@ Point snappedPosition = tileCanvas.SnapToGrid(position);
 // Snap a size to grid
 Size snappedSize = tileCanvas.SnapSizeToGrid(size);
 ```
+
+## Serialization Architecture
+
+### When to Use Library-Level Serialization
+
+- **Simple applications** that only need basic panel layout persistence
+- **Direct TilePanel usage** without MVVM ViewModels
+- **Quick prototyping** or minimal applications
+- When you don't need to persist application-specific data
+
+### When to Use Application-Level (ViewModel) Serialization
+
+- **MVVM applications** using `IPaneViewModel` collections  
+- **Complex applications** with type-specific data (chart settings, statistics, etc.)
+- **Complete application state** needs to be persisted
+- **Single-file simplicity** is preferred over dual-file complexity
+- **Clean separation of concerns** between UI library and application logic
+
+### Recommended Pattern for MVVM Applications
+
+```csharp
+// 1. Create your ViewModels implementing IPaneViewModel
+public class ChartPaneViewModel : PaneViewModel
+{
+    [ObservableProperty] private string _chartType = "Line";
+    [ObservableProperty] private bool _showLegend = true;
+    // ... other chart-specific properties
+}
+
+// 2. Use ViewModelSerializer for complete app state
+public class MainViewModel
+{
+    public ObservableCollection<IPaneViewModel> Panes { get; }
+    
+    [RelayCommand]
+    private async Task SaveLayoutAsync()
+    {
+        var serializer = new ViewModelSerializer();
+        var appSettings = CreateAppSettings();
+        await serializer.SaveAsync(Panes, appSettings, fileName);
+    }
+}
+
+// 3. Let TileCanvas auto-sync via MVVM binding
+// <TileCanvas ItemsSource="{Binding Panes}" ... />
+```
+
+This approach provides **maximum flexibility** with **minimal complexity**.
+
+### Migration from Dual-File Serialization
+
+If you're currently using a complex dual-file approach (library layout + app data), consider migrating to ViewModel-only serialization:
+
+**Benefits:**
+- ✅ **Single file** instead of `.json` + `.appdata.json` pairs
+- ✅ **~400 lines less code** in your application
+- ✅ **No library coupling** - you control your own serialization
+- ✅ **Better maintainability** with separated concerns
+- ✅ **Same functionality** with much simpler implementation
+
+See the example project for a complete implementation that went from 162 lines of complex save/load logic down to just 45 lines of simple code!
 
 ## Events
 
@@ -201,12 +279,38 @@ tileCanvas.Configuration = config;
 ## Examples
 
 Check out the included example project (`CodingConnected.WPF.TileCanvas.Example`) for a complete demonstration of:
-- MVVM pattern implementation
-- Custom DataTemplateSelector usage
-- Layout persistence
-- Different panel types (Charts, Stats, Tables)
-- Grid mode switching
-- Interactive editing features
+- **MVVM pattern implementation** with `IPaneViewModel` interface
+- **Simplified ViewModel-only serialization** - single file saves complete app state
+- **Custom DataTemplateSelector usage** for different panel types
+- **Different panel types** (Charts, Stats, Tables, Labels) with type-specific properties
+- **Grid mode switching** between Fixed and Flexible layouts
+- **Interactive editing features** (drag, resize, close panels)
+- **Clean architecture** with separated serialization concerns
+
+### Key Example Features:
+
+**Simple Save/Load Implementation:**
+```csharp
+// MainViewModel save method - just 20 lines!
+[RelayCommand]
+private async Task SaveLayoutAsync()
+{
+    var serializer = new ViewModelSerializer();
+    var appSettings = new AppSettings { /* capture all app state */ };
+    await serializer.SaveAsync(Panes, appSettings, fileName);
+}
+
+// MainViewModel load method - just 25 lines!
+[RelayCommand]
+private async Task LoadLayoutAsync()
+{
+    var serializer = new ViewModelSerializer();
+    var (panes, appSettings) = await serializer.LoadAsync(fileName);
+    // Apply settings and replace panes - done!
+}
+```
+
+The example demonstrates how **ViewModel serialization alone is sufficient** for complete application state persistence, eliminating the need for complex dual-file approaches.
 
 ## License
 

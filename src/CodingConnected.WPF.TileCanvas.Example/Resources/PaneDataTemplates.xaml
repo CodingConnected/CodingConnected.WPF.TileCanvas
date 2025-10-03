@@ -3,7 +3,7 @@
                     xmlns:viewModels="clr-namespace:CodingConnected.WPF.TileCanvas.Example.ViewModels">
 
     <!-- Chart Pane DataTemplate -->
-    <DataTemplate x:Key="ChartPaneTemplate" DataType="{x:Type viewModels:ChartPaneViewModel}">
+    <DataTemplate DataType="{x:Type viewModels:ChartPaneViewModel}">
         <ScrollViewer VerticalScrollBarVisibility="Auto">
             <Grid Margin="0" Background="AliceBlue">
                 <Grid.RowDefinitions>
@@ -41,7 +41,7 @@
     </DataTemplate>
 
     <!-- Stats Pane DataTemplate -->
-    <DataTemplate x:Key="StatsPaneTemplate" DataType="{x:Type viewModels:StatsPaneViewModel}">
+    <DataTemplate DataType="{x:Type viewModels:StatsPaneViewModel}">
         <Grid Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -78,7 +78,7 @@
     </DataTemplate>
 
     <!-- Table Pane DataTemplate -->
-    <DataTemplate x:Key="TablePaneTemplate" DataType="{x:Type viewModels:TablePaneViewModel}">
+    <DataTemplate DataType="{x:Type viewModels:TablePaneViewModel}">
         <Grid Margin="10">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
@@ -118,7 +118,7 @@
     </DataTemplate>
     
     <!-- Label Pane DataTemplate -->
-    <DataTemplate x:Key="LabelPaneTemplate" DataType="{x:Type viewModels:LabelPaneViewModel}">
+    <DataTemplate DataType="{x:Type viewModels:LabelPaneViewModel}">
         <Grid>
             <TextBlock Text="{Binding Path=Title}" 
                        FontSize="24" 
@@ -128,23 +128,6 @@
                        VerticalAlignment="Center" 
                        TextWrapping="Wrap"/>
         </Grid>
-    </DataTemplate>
-    
-    <!-- Default Pane DataTemplate -->
-    <DataTemplate x:Key="DefaultPaneTemplate">
-        <Border Margin="10" Background="#FFF5F5F5" BorderBrush="#FFE0E0E0" BorderThickness="1" CornerRadius="4">
-            <StackPanel Margin="10" HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock Text="❓" FontSize="32" HorizontalAlignment="Center" Margin="0,0,0,10"/>
-                <TextBlock Text="Unknown Pane Type" 
-                           FontWeight="Bold" 
-                           HorizontalAlignment="Center"/>
-                <TextBlock Text="No template defined for this pane type." 
-                           FontSize="12" 
-                           Foreground="Gray" 
-                           HorizontalAlignment="Center" 
-                           Margin="0,5,0,0"/>
-            </StackPanel>
-        </Border>
     </DataTemplate>
 
 </ResourceDictionary>

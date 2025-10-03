@@ -13,8 +13,9 @@ A flexible, responsive tile canvas system for WPF applications with drag-and-dro
 - **Layout Persistence**: Save and load layouts with library-level or simplified ViewModel-only serialization
 - **Edit Mode**: Toggle between edit and view modes
 - **Grid Snapping**: Optional snapping to grid during drag/resize operations
+- **Panel Selection**: Click to select panels with `SelectedPaneId` property and `IsSelected` ViewModel support
 - **Customizable**: Configurable grid spacing, panel margins, and visual styling
-- **Template Support**: Use `DataTemplateSelector` for custom panel content
+- **Template Support**: Automatic WPF template resolution or optional `DataTemplateSelector` for advanced scenarios
 
 ## Installation
 
@@ -49,7 +50,6 @@ dotnet add package CodingConnected.WPF.TileCanvas
 
 ```xml
 <tiles:TileCanvas ItemsSource="{Binding Panes}"
-                  PaneContentTemplateSelector="{StaticResource MyTemplateSelector}"
                   IsEditMode="{Binding IsEditMode}"
                   GridMode="{Binding GridMode}" />
 ```
@@ -67,6 +67,7 @@ public class MyPaneViewModel : IPaneViewModel
     public double Height { get; set; }
     public string PaneType { get; set; }
     public string HeaderColor { get; set; }
+    public bool IsSelected { get; set; }
 
     public event PropertyChangedEventHandler PropertyChanged;
 }
@@ -98,6 +99,32 @@ public class MyPaneViewModel : IPaneViewModel
 | `SnapToGridOnResize` | `bool` | Snap panels to grid during resizing |
 | `PanelSpacing` | `double` | Visual spacing between panel content |
 | `PanelGap` | `double` | Gap between panels |
+
+## Panel Selection
+
+TileCanvas supports panel selection through click interaction:
+
+```xml
+<!-- Bind to SelectedPaneId property -->
+<tiles:TileCanvas ItemsSource="{Binding Panes}"
+                  SelectedPaneId="{Binding SelectedPaneId}" />
+```
+
+```csharp
+// React to selection changes in your ViewModel
+public string SelectedPaneId
+{
+    get => _selectedPaneId;
+    set => SetProperty(ref _selectedPaneId, value);
+}
+
+// Or handle the PanelSelected event
+tileCanvas.PanelSelected += (sender, e) => {
+    Console.WriteLine($"Panel {e.Panel.Id} selected");
+};
+```
+
+The `IsSelected` property on `IPaneViewModel` is automatically synchronized with the canvas selection.
 
 ## Methods
 
@@ -227,26 +254,76 @@ tileCanvas.PanelAdded += (sender, e) => { /* Panel added */ };
 tileCanvas.PanelRemoved += (sender, e) => { /* Panel removed */ };
 tileCanvas.PanelMoved += (sender, e) => { /* Panel moved */ };
 tileCanvas.PanelResized += (sender, e) => { /* Panel resized */ };
+tileCanvas.PanelSelected += (sender, e) => { /* Panel selected */ };
 tileCanvas.LayoutChanged += (sender, e) => { /* Layout changed */ };
 ```
 
-## Custom Panel Content
+## Template Resolution
 
-Use `DataTemplateSelector` to provide different templates based on panel type:
+TileCanvas supports two approaches for resolving DataTemplates for your ViewModels:
+
+### 1. Automatic Template Resolution (Recommended)
+
+The simplest approach uses WPF's built-in template matching. Just define DataTemplates with `DataType` attributes:
 
 ```xml
-<DataTemplate x:Key="ChartTemplate">
+<Window.Resources>
+    <ResourceDictionary>
+        <ResourceDictionary.MergedDictionaries>
+            <ResourceDictionary Source="Resources/PaneDataTemplates.xaml"/>
+        </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+</Window.Resources>
+
+<!-- In PaneDataTemplates.xaml -->
+<DataTemplate DataType="{x:Type viewModels:ChartPaneViewModel}">
     <local:ChartUserControl />
 </DataTemplate>
 
-<DataTemplate x:Key="StatsTemplate">
+<DataTemplate DataType="{x:Type viewModels:StatsPaneViewModel}">
     <local:StatsUserControl />
 </DataTemplate>
 
+<!-- TileCanvas usage - no template selector needed -->
+<tiles:TileCanvas ItemsSource="{Binding Panes}" />
+```
+
+**Benefits:**
+- ✅ Simple and clean - no extra selector classes needed
+- ✅ WPF automatically finds the right template
+- ✅ Standard WPF pattern
+- ✅ Easy to maintain and extend
+
+### 2. Explicit Template Selector (Advanced)
+
+For complex scenarios requiring custom logic, use `DataTemplateSelector`:
+
+```xml
+<!-- Define keyed templates -->
+<DataTemplate x:Key="ChartTemplate" DataType="{x:Type viewModels:ChartPaneViewModel}">
+    <local:ChartUserControl />
+</DataTemplate>
+
+<DataTemplate x:Key="StatsTemplate" DataType="{x:Type viewModels:StatsPaneViewModel}">
+    <local:StatsUserControl />
+</DataTemplate>
+
+<!-- Create template selector -->
 <local:MyTemplateSelector x:Key="MyTemplateSelector"
                          ChartTemplate="{StaticResource ChartTemplate}"
                          StatsTemplate="{StaticResource StatsTemplate}" />
+
+<!-- Use explicit selector -->
+<tiles:TileCanvas ItemsSource="{Binding Panes}"
+                  PaneContentTemplateSelector="{StaticResource MyTemplateSelector}" />
 ```
+
+**When to use:**
+- ✅ Complex template selection logic beyond type matching
+- ✅ Runtime template switching based on ViewModel properties
+- ✅ Backward compatibility with existing selector implementations
+
+**Note:** The example project demonstrates the automatic approach for simplicity.
 
 ## Configuration
 

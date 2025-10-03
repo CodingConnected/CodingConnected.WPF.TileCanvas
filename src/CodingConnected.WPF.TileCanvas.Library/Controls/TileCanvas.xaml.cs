@@ -1054,17 +1054,23 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                         panel.Content = element;
                     }
                 }
+                else
+                {
+                    // Selector exists but returned null - use fallback
+                    SetFallbackContent(panel, viewModel);
+                }
             }
             else
             {
-                // Fallback content
-                panel.Content = new TextBlock
+                // No selector provided - use WPF automatic template resolution
+                var contentPresenter = new ContentPresenter
                 {
-                    Text = $"Content for {viewModel.Title}\n\nViewModel Type: {viewModel.PaneType}",
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(10),
-                    Foreground = Brushes.DarkGray
+                    Content = viewModel
                 };
+                panel.Content = contentPresenter;
+                
+                // WPF will automatically find DataTemplate with matching DataType
+                // If no template is found, WPF will use default content presentation
             }
 
             return panel;
@@ -1458,6 +1464,22 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                     OnPanelSelected(new PanelEventArgs(panelLayout));
                 }
             }
+        }
+
+        /// <summary>
+        /// Sets fallback content when no template is available
+        /// </summary>
+        private static void SetFallbackContent(TilePanel panel, IPaneViewModel viewModel)
+        {
+            panel.Content = new TextBlock
+            {
+                Text = $"Content for {viewModel.Title}\n\nViewModel Type: {viewModel.PaneType}\n\nNo DataTemplate found.",
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(10),
+                Foreground = Brushes.DarkGray,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
         }
 
         /// <summary>

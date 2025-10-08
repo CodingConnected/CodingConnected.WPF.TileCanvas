@@ -15,7 +15,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Models
         /// <summary>
         /// Size of grid cells in fixed mode (in pixels)
         /// </summary>
-        public int GridSize { get; set; } = 50;
+        public int GridSize { get; set; } = 10;
 
         /// <summary>
         /// Number of columns in flexible mode

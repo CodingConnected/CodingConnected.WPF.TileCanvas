@@ -34,6 +34,10 @@
                         <CheckBox Content="Show Legend" 
                                   IsChecked="{Binding ShowLegend}" 
                                   Margin="0,5,0,0"/>
+                        
+                        <CheckBox Content="Show Header" 
+                                  IsChecked="{Binding ShowHeader}" 
+                                  Margin="0,5,0,0"/>
                     </StackPanel>
                 </Border>
             </Grid>
@@ -46,6 +50,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
             <!-- Stats Header -->
@@ -74,6 +79,11 @@
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
+            
+            <!-- Show Header Checkbox -->
+            <CheckBox Grid.Row="2" Content="Show Header" 
+                      IsChecked="{Binding ShowHeader}" 
+                      Margin="0,10,0,0" HorizontalAlignment="Left"/>
         </Grid>
     </DataTemplate>
 

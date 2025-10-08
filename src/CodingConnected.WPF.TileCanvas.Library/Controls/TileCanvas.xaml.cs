@@ -541,7 +541,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 maxBottom = Math.Max(maxBottom, bottom);
             }
 
-            return Math.Max(400, maxBottom + 50); // Add small padding
+            return Math.Max(400, maxBottom); // Add small padding
         }
 
         /// <summary>
@@ -563,7 +563,7 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                 maxRight = Math.Max(maxRight, right);
             }
 
-            return Math.Max(400, maxRight + 50); // Add small padding
+            return Math.Max(400, maxRight); // Add small padding
         }
 
         /// <summary>
@@ -1198,6 +1198,40 @@ namespace CodingConnected.WPF.TileCanvas.Library.Controls
                                 // Ignore invalid colors
                             }
                         }
+                        break;
+                    case nameof(IPaneViewModel.BackgroundColor):
+                        if (!string.IsNullOrEmpty(viewModel.BackgroundColor))
+                        {
+                            try
+                            {
+                                var color = (Color)ColorConverter.ConvertFromString(viewModel.BackgroundColor);
+                                panel.PaneBackgroundBrush = new SolidColorBrush(color);
+                            }
+                            catch
+                            {
+                                // Ignore invalid colors
+                            }
+                        }
+                        break;
+                    case nameof(IPaneViewModel.BorderColor):
+                        if (!string.IsNullOrEmpty(viewModel.BorderColor))
+                        {
+                            try
+                            {
+                                var color = (Color)ColorConverter.ConvertFromString(viewModel.BorderColor);
+                                panel.PaneBorderBrush = new SolidColorBrush(color);
+                            }
+                            catch
+                            {
+                                // Ignore invalid colors
+                            }
+                        }
+                        break;
+                    case nameof(IPaneViewModel.BorderThickness):
+                        panel.PaneBorderThickness = new Thickness(viewModel.BorderThickness);
+                        break;
+                    case nameof(IPaneViewModel.ShowHeader):
+                        panel.HeaderVisibility = viewModel.ShowHeader ? Visibility.Visible : Visibility.Collapsed;
                         break;
                     case nameof(IPaneViewModel.IsSelected):
                         if (viewModel.IsSelected)
